@@ -137,7 +137,7 @@ function bindDataPanelEvents() {
       const v = validateTripsJson(data);
       if (!v.ok) { showToast(`格式錯誤：${v.error}`, 'error'); return; }
       const { user } = getState();
-      await api.saveTrips(user.id, data);
+      if (user) await api.saveTrips(user.id, data);
       setState({ trips: data, activeTripId: data.current_trips[0]?.id || null });
       saveCache(data, getState().preferences);
       showToast('行程匯入成功', 'success');
@@ -154,7 +154,7 @@ function bindDataPanelEvents() {
     try {
       const data = JSON.parse(await file.text());
       const { user } = getState();
-      await api.savePreferences(user.id, data);
+      if (user) await api.savePreferences(user.id, data);
       setState({ preferences: data });
       saveCache(getState().trips, data);
       showToast('偏好設定匯入成功', 'success');
