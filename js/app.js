@@ -141,6 +141,23 @@ function bindAppEvents() {
     location.reload();
   });
 
+  /* ── Budget event delegation (bound once) ── */
+  document.getElementById('budget-content')?.addEventListener('click', e => {
+    const trip = getActiveTrip();
+    if (!trip) return;
+    if (e.target.id === 'add-expense-btn' || e.target.closest('#add-expense-btn')) {
+      ui.renderExpenseForm(trip);
+      bindExpenseFormEvents(trip);
+      return;
+    }
+    const delBtn = e.target.closest('.expense-del-btn');
+    if (delBtn) {
+      const expId = delBtn.dataset.expenseId;
+      trip.expenses = (trip.expenses || []).filter(ex => ex.id !== expId);
+      persistTrip(trip).then(ok => { if (ok) ui.renderBudget(trip); });
+    }
+  });
+
   document.getElementById('panel-prefs')?.addEventListener('click', e => {
     if (e.target.id === 'prefs-edit-btn') {
       const { preferences } = getState();
@@ -471,27 +488,6 @@ function bindDataPanelEvents() {
     finally { shareBtn.disabled = false; shareBtn.textContent = '建立唯讀分享連結（TTL 30天）'; }
   });
 
-  /* ── Budget panel event delegation ── */
-  document.getElementById('budget-content')?.addEventListener('click', e => {
-    const trip = getActiveTrip();
-    if (!trip) return;
-
-    if (e.target.id === 'add-expense-btn' || e.target.closest('#add-expense-btn')) {
-      ui.renderExpenseForm(trip);
-      bindExpenseFormEvents(trip);
-      return;
-    }
-
-    const delBtn = e.target.closest('.expense-del-btn');
-    if (delBtn) {
-      const expId = delBtn.dataset.expenseId;
-      trip.expenses = (trip.expenses || []).filter(ex => ex.id !== expId);
-      persistTrip(trip).then(ok => {
-        if (ok) ui.renderBudget(trip);
-        else trip.expenses = getActiveTrip()?.expenses || trip.expenses;
-      });
-    }
-  });
 }
 
 function bindExpenseFormEvents(trip) {
