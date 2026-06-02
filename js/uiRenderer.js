@@ -1,8 +1,12 @@
-import { esc, TYPE_ICONS, TRANSPORT_ICONS, formatDate, formatDateShort, formatCurrency } from './utils.js';
+import {
+  esc, TYPE_ICONS, TRANSPORT_ICONS, ICON_CHECK, ICON_GLOBE,
+  formatDate, formatDateShort, formatCurrency,
+} from './utils.js';
 
 const STATUS_LABELS = { planning: '規劃中', ongoing: '進行中', completed: '已完成' };
-const STATUS_COLORS = { planning: 'color:#1d4ed8;background:#dbeafe', ongoing: 'color:#166534;background:#dcfce7', completed: 'color:#475569;background:#f1f5f9' };
+const STATUS_BADGE  = { planning: 'badge-planning', ongoing: 'badge-ongoing', completed: 'badge-completed' };
 
+/* ── Online / Offline ── */
 export function setOnlineState(isOnline) {
   const banner = document.getElementById('offline-banner');
   if (banner) banner.style.display = isOnline ? 'none' : 'block';
@@ -15,18 +19,17 @@ export function setOnlineState(isOnline) {
   });
 }
 
+/* ── Tab Bar ── */
 export function setActiveTab(tab) {
   ['trips', 'budget', 'prefs', 'data'].forEach(t => {
     const panel = document.getElementById(`panel-${t}`);
-    const btn = document.getElementById(`tab-${t}`);
+    const btn   = document.getElementById(`tab-${t}`);
     if (panel) panel.style.display = t === tab ? 'block' : 'none';
-    if (btn) {
-      btn.style.borderBottom = t === tab ? '2px solid #0ea5e9' : '2px solid transparent';
-      btn.style.color = t === tab ? '#0284c7' : '#64748b';
-    }
+    if (btn)   btn.classList.toggle('active', t === tab);
   });
 }
 
+/* ── Trip Selector ── */
 export function renderTripSelector(trips, activeTripId) {
   const sel = document.getElementById('trip-selector');
   if (!sel) return;
@@ -37,134 +40,179 @@ export function renderTripSelector(trips, activeTripId) {
   ).join('');
 }
 
+/* ── Timeline ── */
 export function renderTimeline(trip) {
   const el = document.getElementById('timeline-content');
   if (!el) return;
   if (!trip) {
-    el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">尚無行程資料<br><small>前往「資料」匯入 JSON</small></div>';
+    el.innerHTML = '<div class="empty-state">尚無行程資料<br><small>前往「資料」匯入 JSON</small></div>';
     return;
   }
 
-  const statusStyle = STATUS_COLORS[trip.status] || STATUS_COLORS.planning;
+  const badgeClass = STATUS_BADGE[trip.status] || 'badge-planning';
   el.innerHTML = `
-    <div style="padding:12px 16px 8px;border-bottom:1px solid #f1f5f9">
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:13px;font-weight:600;color:#1e293b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(trip.title)}</span>
-        <span style="font-size:11px;padding:2px 8px;border-radius:20px;${statusStyle}">${STATUS_LABELS[trip.status] || ''}</span>
+    <div class="trip-header">
+      <div class="trip-header-row">
+        <span class="trip-title">${esc(trip.title)}</span>
+        <span class="badge ${badgeClass}">${STATUS_LABELS[trip.status] || ''}</span>
       </div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:2px">${esc(formatDateShort(trip.start_date))} – ${esc(formatDateShort(trip.end_date))}</div>
+      <div class="trip-dates">${esc(formatDateShort(trip.start_date))} – ${esc(formatDateShort(trip.end_date))}</div>
     </div>
     <div id="segments-container">${(trip.segments || []).map(seg => renderSegment(seg)).join('')}</div>
+    ${renderTodoPacking(trip)}
   `;
 
   el.querySelectorAll('.seg-header').forEach(hdr => {
     hdr.addEventListener('click', () => {
-      const body = hdr.nextElementSibling;
+      const body  = hdr.nextElementSibling;
+      const arrow = hdr.querySelector('.seg-arrow');
       if (!body) return;
       const hidden = body.style.display === 'none';
       body.style.display = hidden ? 'block' : 'none';
-      hdr.querySelector('.seg-arrow').textContent = hidden ? '▼' : '▶';
+      if (arrow) arrow.textContent = hidden ? '▼' : '▶';
     });
   });
 
   el.querySelectorAll('[data-day]').forEach(card => {
     card.addEventListener('click', () => {
-      el.querySelectorAll('[data-day]').forEach(c => c.style.outline = '');
-      card.style.outline = '2px solid #38bdf8';
-      const { day, lat, lng, segId } = card.dataset;
+      el.querySelectorAll('[data-day]').forEach(c => c.classList.remove('is-selected'));
+      card.classList.add('is-selected');
+      const { day, lat, lng } = card.dataset;
       window.dispatchEvent(new CustomEvent('kai-travel:day-click', {
-        detail: { date: day, lat: lat ? parseFloat(lat) : null, lng: lng ? parseFloat(lng) : null, segId },
+        detail: { date: day, lat: lat ? parseFloat(lat) : null, lng: lng ? parseFloat(lng) : null },
       }));
     });
   });
 }
 
 function renderSegment(seg) {
-  const color = seg.color || '#64748b';
-  const days = seg.daily || [];
+  const color = esc(seg.color || '#64748b');
+  const days  = seg.daily || [];
   return `
-    <div style="margin-bottom:4px">
-      <div class="seg-header" style="display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;border-left:3px solid ${esc(color)};background:#fafafa">
-        <span class="seg-arrow" style="font-size:10px;color:#94a3b8">▼</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(seg.name)}</div>
-          <div style="font-size:10px;color:#94a3b8">${esc(formatDateShort(seg.start_date))} – ${esc(formatDateShort(seg.end_date))} · ${days.length} 天</div>
+    <div class="seg-block">
+      <div class="seg-header" style="border-left:3px solid ${color}">
+        <span class="seg-arrow">▼</span>
+        <div class="seg-info">
+          <div class="seg-name">${esc(seg.name)}</div>
+          <div class="seg-dates-sm">${esc(formatDateShort(seg.start_date))} – ${esc(formatDateShort(seg.end_date))} · ${days.length} 天</div>
         </div>
-        <div style="width:10px;height:10px;border-radius:50%;background:${esc(color)};flex-shrink:0"></div>
+        <div class="seg-dot" style="background:${color}"></div>
       </div>
-      <div class="seg-body">
-        ${days.map(day => renderDayCard(day, seg.id)).join('')}
-      </div>
+      <div class="seg-body">${days.map(day => renderDayCard(day)).join('')}</div>
     </div>
   `;
 }
 
-function renderDayCard(day, segId) {
+function renderDayCard(day) {
   const isTransport = day.type === 'transport';
   const hasLoc = day.lat != null && day.lng != null;
   const t = day.transport;
-  const transportInfo = t
-    ? `<div style="font-size:11px;color:#64748b;margin-top:3px">${TRANSPORT_ICONS[t.mode] || ''} ${esc(t.from || '')} → ${esc(t.to || '')}${t.duration_hours ? ` · ${t.duration_hours}h` : ''}</div>`
+  const icon = TYPE_ICONS[day.type] || TYPE_ICONS.sightseeing;
+  const transportHtml = t
+    ? `<div class="day-transport">${TRANSPORT_ICONS[t.mode] || ''}${esc(t.from || '')} → ${esc(t.to || '')}${t.duration_hours ? ` · ${t.duration_hours}h` : ''}</div>`
     : '';
-  const bg = isTransport ? '#f8fafc' : 'white';
-
   return `
-    <div data-day="${esc(day.date)}" data-lat="${day.lat ?? ''}" data-lng="${day.lng ?? ''}" data-seg-id="${esc(segId)}"
-         style="display:flex;gap:10px;padding:8px 16px;cursor:pointer;background:${bg};border-bottom:1px solid #f1f5f9">
-      <span style="font-size:16px;flex-shrink:0;margin-top:1px">${TYPE_ICONS[day.type] || '📍'}</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:2px">${esc(formatDate(day.date))}</div>
-        <div style="font-size:13px;color:#1e293b;font-weight:500;line-height:1.3">${esc(day.title || '')}</div>
-        ${transportInfo}
-        ${day.note ? `<div style="font-size:11px;color:#94a3b8;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(day.note)}</div>` : ''}
+    <div data-day="${esc(day.date)}" data-lat="${day.lat ?? ''}" data-lng="${day.lng ?? ''}"
+         class="day-card${isTransport ? ' is-transport' : ''}">
+      <div class="day-icon day-icon-${esc(day.type || 'sightseeing')}">${icon}</div>
+      <div class="day-body">
+        <div class="day-date">${esc(formatDate(day.date))}</div>
+        <div class="day-title">${esc(day.title || '')}</div>
+        ${transportHtml}
+        ${day.note ? `<div class="day-note">${esc(day.note)}</div>` : ''}
       </div>
-      ${hasLoc ? '<div style="width:6px;height:6px;border-radius:50%;background:#38bdf8;flex-shrink:0;margin-top:6px" title="已標記座標"></div>' : ''}
+      ${hasLoc ? '<div class="day-loc-dot" title="已標記座標"></div>' : ''}
     </div>
   `;
 }
 
+/* ── Todo / Packing ── */
+function renderTodoPacking(trip) {
+  const todo    = trip.todo    || [];
+  const packing = trip.packing || [];
+  if (!todo.length && !packing.length) return '';
+
+  const doneTodo    = todo.filter(i => i.done).length;
+  const donePacking = packing.filter(i => i.done).length;
+
+  const todoItems = todo.map(item => `
+    <div class="checklist-item${item.done ? ' done' : ''}" data-todo-id="${esc(item.id)}">
+      <div class="checklist-cb">${item.done ? ICON_CHECK : ''}</div>
+      <span class="checklist-text">${esc(item.text)}</span>
+    </div>`).join('');
+
+  // group packing by category
+  const catMap = {};
+  packing.forEach(p => { (catMap[p.category || '其他'] ??= []).push(p); });
+  const packingItems = Object.entries(catMap).map(([cat, items]) => `
+    <div class="packing-cat-label">${esc(cat)}</div>
+    ${items.map(item => `
+    <div class="checklist-item${item.done ? ' done' : ''}" data-packing-id="${esc(item.id)}">
+      <div class="checklist-cb">${item.done ? ICON_CHECK : ''}</div>
+      <span class="checklist-text">${esc(item.text)}</span>
+    </div>`).join('')}`).join('');
+
+  return `
+    ${todo.length ? `
+    <div class="checklist-section">
+      <div class="checklist-header" data-toggle="todo-body">
+        <span class="seg-arrow">▼</span>
+        <span class="checklist-header-title">待辦清單</span>
+        <span class="checklist-count">${doneTodo}/${todo.length}</span>
+      </div>
+      <div id="todo-body">${todoItems}</div>
+    </div>` : ''}
+    ${packing.length ? `
+    <div class="checklist-section">
+      <div class="checklist-header" data-toggle="packing-body">
+        <span class="seg-arrow">▼</span>
+        <span class="checklist-header-title">打包清單</span>
+        <span class="checklist-count">${donePacking}/${packing.length}</span>
+      </div>
+      <div id="packing-body">${packingItems}</div>
+    </div>` : ''}
+  `;
+}
+
+/* ── Budget ── */
 export function renderBudget(trip) {
   const el = document.getElementById('budget-content');
   if (!el) return;
-  if (!trip) { el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">請先選擇行程</div>'; return; }
+  if (!trip) { el.innerHTML = '<div class="empty-state">請先選擇行程</div>'; return; }
 
   const expenses = trip.expenses || [];
-  const total = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-  const budget = trip.budget_total || 0;
+  const total    = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+  const budget   = trip.budget_total || 0;
   const currency = trip.base_currency || 'TWD';
-  const pct = budget ? Math.min(100, Math.round(total / budget * 100)) : 0;
+  const pct      = budget ? Math.min(100, Math.round(total / budget * 100)) : 0;
+  const over     = budget && total > budget;
   const byCategory = {};
   expenses.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + (e.amount || 0); });
 
   el.innerHTML = `
-    <div style="padding:16px;display:flex;flex-direction:column;gap:16px">
-      <div style="background:#f8fafc;border-radius:12px;padding:16px">
-        <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">預算使用</div>
-        <div style="display:flex;align-items:baseline;gap:8px">
-          <span style="font-size:22px;font-weight:700;color:#1e293b">${esc(formatCurrency(total, currency))}</span>
-          ${budget ? `<span style="font-size:13px;color:#94a3b8">/ ${esc(formatCurrency(budget, currency))}</span>` : ''}
+    <div style="padding:var(--pp);display:flex;flex-direction:column;gap:16px">
+      <div class="budget-summary">
+        <div class="section-lbl">預算使用</div>
+        <div class="budget-amount-row">
+          <span class="budget-amount">${esc(formatCurrency(total, currency))}</span>
+          ${budget ? `<span class="budget-total-lbl">/ ${esc(formatCurrency(budget, currency))}</span>` : ''}
         </div>
         ${budget ? `
-          <div style="margin-top:8px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
-            <div style="height:100%;background:#0ea5e9;border-radius:3px;width:${pct}%;transition:width .4s"></div>
+          <div class="budget-bar-track">
+            <div class="budget-bar-fill${over ? ' over' : ''}" style="width:${pct}%"></div>
           </div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:4px">${pct}% 已使用</div>
-        ` : ''}
+          <div class="budget-pct">${pct}% 已使用</div>` : ''}
       </div>
       ${Object.keys(byCategory).length ? '<div><canvas id="budget-chart" height="200"></canvas></div>' : ''}
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em">明細</div>
-          <button id="add-expense-btn" data-edit style="font-size:11px;color:#0284c7;background:none;border:none;cursor:pointer">+ 新增</button>
+          <div class="section-lbl" style="margin:0">明細</div>
+          <button id="add-expense-btn" class="btn btn-link" data-edit>+ 新增</button>
         </div>
+        <div id="expense-form-wrap"></div>
         ${expenses.length === 0
-          ? '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:16px 0">尚無花費記錄</div>'
-          : expenses.map(e => `
-            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9">
-              <span style="font-size:11px;color:#94a3b8;width:52px;flex-shrink:0">${esc(e.date?.slice(5) || '')}</span>
-              <span style="font-size:12px;color:#475569;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.note || e.category)}</span>
-              <span style="font-size:12px;font-weight:600;color:#1e293b">${esc(formatCurrency(e.amount, e.currency || currency))}</span>
-            </div>`).join('')
+          ? '<div style="text-align:center;color:var(--c-muted-lt);font-size:13px;padding:16px 0">尚無花費記錄</div>'
+          : `<div id="expense-list">${expenses.map(e => renderExpenseRow(e, currency)).join('')}</div>`
         }
       </div>
     </div>
@@ -181,88 +229,130 @@ export function renderBudget(trip) {
           labels: Object.keys(byCategory),
           datasets: [{ data: Object.values(byCategory), backgroundColor: ['#f59e0b','#3b82f6','#22c55e','#a855f7','#ef4444','#0ea5e9','#f97316','#64748b'] }],
         },
-        options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } },
+        options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' } } } } },
       });
     }, 50);
   }
 }
 
+function renderExpenseRow(e, fallbackCurrency) {
+  return `
+    <div class="expense-row">
+      <span class="expense-date">${esc(e.date?.slice(5) || '')}</span>
+      <span class="expense-note">${esc(e.note || e.category)}</span>
+      <span class="expense-amount">${esc(formatCurrency(e.amount, e.currency || fallbackCurrency))}</span>
+    </div>`;
+}
+
+export function renderExpenseForm(trip) {
+  const wrap = document.getElementById('expense-form-wrap');
+  if (!wrap) return;
+  const currency = trip?.base_currency || 'TWD';
+  const segments = trip?.segments || [];
+  wrap.innerHTML = `
+    <div class="expense-form" id="add-expense-form">
+      <div class="expense-form-row">
+        <input type="date" id="ef-date" value="${new Date().toISOString().slice(0,10)}" placeholder="日期">
+        <select id="ef-category">
+          ${['景點','餐飲','交通','住宿','購物','其他'].map(c => `<option>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="expense-form-row">
+        <input type="number" id="ef-amount" placeholder="金額" min="0">
+        <input type="text" id="ef-currency" value="${esc(currency)}" placeholder="幣別" style="width:70px;flex:none">
+      </div>
+      ${segments.length ? `<select id="ef-segment"><option value="">（不指定分段）</option>${segments.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</select>` : ''}
+      <input type="text" id="ef-note" placeholder="備註（選填）">
+      <div class="expense-form-row">
+        <button id="ef-save" class="btn btn-primary" style="flex:1">儲存</button>
+        <button id="ef-cancel" class="btn btn-ghost" style="flex:1">取消</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ── Prefs ── */
 export function renderPrefs(prefs) {
   const el = document.getElementById('prefs-content');
   if (!el) return;
   if (!prefs || !Object.keys(prefs).length) {
-    el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">尚無偏好設定<br><small>前往「資料」匯入 preferences.json</small></div>';
+    el.innerHTML = '<div class="empty-state">尚無偏好設定<br><small>前往「資料」匯入 preferences.json</small></div>';
     return;
   }
-  const bl = prefs.bucket_list || [];
-  const row = (label, val) => val ? `<div style="display:flex;gap:8px;font-size:12px;padding:3px 0"><span style="color:#94a3b8;width:72px;flex-shrink:0">${esc(label)}</span><span style="color:#334155">${esc(Array.isArray(val) ? val.join(', ') : val)}</span></div>` : '';
+  const bl  = prefs.bucket_list || [];
+  const row = (label, val) => val
+    ? `<div class="pref-row"><span class="pref-label">${esc(label)}</span><span class="pref-value">${esc(Array.isArray(val) ? val.join(', ') : val)}</span></div>`
+    : '';
+
   el.innerHTML = `
-    <div style="padding:16px;display:flex;flex-direction:column;gap:16px">
-      <div style="background:#f8fafc;border-radius:12px;padding:16px">
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">基本資料</div>
+    <div style="padding:var(--pp);display:flex;flex-direction:column;gap:16px">
+      <div class="surface-card">
+        <div class="section-lbl">基本資料</div>
         ${row('旅行風格', prefs.travel_style)}
         ${row('預算層級', prefs.budget_level)}
         ${row('旅行節奏', prefs.pace_preference)}
-        ${row('同伴', prefs.travel_companions)}
-        ${row('語言', prefs.language_skills)}
-        ${row('興趣', prefs.interests)}
+        ${row('同伴',     prefs.travel_companions)}
+        ${row('語言',     prefs.language_skills)}
+        ${row('興趣',     prefs.interests)}
       </div>
       <div>
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Bucket List (${bl.length})</div>
+        <div class="section-lbl">Bucket List (${bl.length})</div>
         ${bl.map(b => `
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9">
-            <span>🌍</span>
-            <span style="font-size:13px;color:#334155">${esc(b.destination)}</span>
-            ${b.notes ? `<span style="font-size:11px;color:#94a3b8;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(b.notes)}</span>` : ''}
+          <div class="bucket-item">
+            <span class="bucket-icon">${ICON_GLOBE}</span>
+            <span class="bucket-name">${esc(b.destination)}</span>
+            ${b.notes ? `<span class="bucket-note">${esc(b.notes)}</span>` : ''}
           </div>`).join('')}
       </div>
     </div>
   `;
 }
 
+/* ── Data Panel ── */
 export function renderDataPanel() {
   const el = document.getElementById('data-content');
   if (!el) return;
   el.innerHTML = `
-    <div style="padding:16px;display:flex;flex-direction:column;gap:20px">
+    <div style="padding:var(--pp);display:flex;flex-direction:column;gap:20px">
       <div>
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">匯入資料</div>
+        <div class="section-lbl">匯入資料</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <label>
-            <div style="font-size:12px;color:#475569;margin-bottom:4px">trips.json</div>
-            <input type="file" id="import-trips-file" accept=".json" data-edit style="font-size:11px;color:#64748b">
+            <div class="data-file-label" style="font-size:12px;color:var(--c-muted);margin-bottom:4px">trips.json</div>
+            <input type="file" id="import-trips-file" accept=".json" data-edit style="font-size:11px;color:var(--c-muted)">
           </label>
           <label>
-            <div style="font-size:12px;color:#475569;margin-bottom:4px">preferences.json</div>
-            <input type="file" id="import-prefs-file" accept=".json" data-edit style="font-size:11px;color:#64748b">
+            <div style="font-size:12px;color:var(--c-muted);margin-bottom:4px">preferences.json</div>
+            <input type="file" id="import-prefs-file" accept=".json" data-edit style="font-size:11px;color:var(--c-muted)">
           </label>
         </div>
       </div>
       <div>
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">匯出資料</div>
+        <div class="section-lbl">匯出資料</div>
         <div style="display:flex;gap:8px">
-          <button id="export-json-btn" style="flex:1;padding:8px;font-size:12px;background:#f1f5f9;border:none;border-radius:8px;cursor:pointer;color:#334155">下載 JSON</button>
-          <button id="export-excel-btn" style="flex:1;padding:8px;font-size:12px;background:#ecfdf5;border:none;border-radius:8px;cursor:pointer;color:#166534">匯出 Excel</button>
+          <button id="export-json-btn" class="btn btn-ghost" style="flex:1">下載 JSON</button>
+          <button id="export-excel-btn" class="btn btn-success" style="flex:1">匯出 Excel</button>
         </div>
       </div>
       <div>
-        <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">分享（唯讀）</div>
-        <button id="share-btn" data-edit style="width:100%;padding:8px;font-size:12px;background:#f0f9ff;border:none;border-radius:8px;cursor:pointer;color:#0284c7">建立唯讀分享連結（TTL 30天）</button>
+        <div class="section-lbl">分享（唯讀）</div>
+        <button id="share-btn" class="btn btn-primary" style="width:100%" data-edit>建立唯讀分享連結（TTL 30天）</button>
         <div id="share-result" style="display:none;margin-top:8px">
-          <div style="font-size:11px;color:#94a3b8;margin-bottom:4px">分享連結：</div>
-          <div id="share-url" style="font-size:11px;font-family:monospace;background:#f1f5f9;padding:8px;border-radius:6px;word-break:break-all"></div>
-          <button id="copy-share-btn" style="margin-top:4px;font-size:11px;color:#0284c7;background:none;border:none;cursor:pointer">複製連結</button>
+          <div style="font-size:11px;color:var(--c-muted-lt);margin-bottom:4px">分享連結：</div>
+          <div id="share-url" class="share-url-box"></div>
+          <button id="copy-share-btn" class="btn btn-link" style="margin-top:4px">複製連結</button>
         </div>
       </div>
     </div>
   `;
 }
 
+/* ── Auth ── */
 export function showAuthOverlay() {
   const el = document.getElementById('auth-overlay');
   if (el) el.style.display = 'flex';
   const app = document.getElementById('app');
-  if (app) app.style.display = 'none';
+  if (app) app.classList.remove('ready');
 }
 
 export function hideAuthOverlay() {
@@ -273,12 +363,12 @@ export function hideAuthOverlay() {
 }
 
 export function showOtpStep(email) {
-  const emailForm = document.getElementById('auth-email-form');
-  const otpForm = document.getElementById('auth-otp-form');
-  const emailDisplay = document.getElementById('auth-email-display');
+  const emailForm  = document.getElementById('auth-email-form');
+  const otpForm    = document.getElementById('auth-otp-form');
+  const emailDisp  = document.getElementById('auth-email-display');
   if (emailForm) emailForm.style.display = 'none';
-  if (otpForm) otpForm.style.display = 'block';
-  if (emailDisplay) emailDisplay.textContent = email;
+  if (otpForm)   otpForm.style.display = 'block';
+  if (emailDisp) emailDisp.textContent = email;
 }
 
 export function showAuthError(msg) {
@@ -291,6 +381,7 @@ export function clearAuthError() {
   if (el) { el.textContent = ''; el.style.display = 'none'; }
 }
 
+/* ── Timeline helpers ── */
 export function scrollTimelineToDate(date) {
   const card = document.querySelector(`[data-day="${date}"]`);
   if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });

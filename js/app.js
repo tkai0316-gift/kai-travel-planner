@@ -2,7 +2,7 @@ import { getState, setState, validateTripsJson, saveCache, loadCache } from './s
 import * as api from './api.js';
 import * as mapMgr from './mapManager.js';
 import * as ui from './uiRenderer.js';
-import { showToast } from './utils.js';
+import { showToast, generateId } from './utils.js';
 
 let pendingEmail = '';
 
@@ -22,11 +22,14 @@ async function init() {
     showToast('已離線，切換為唯讀模式', 'warn');
   });
 
-  // DEV BYPASS: 暫時跳過 auth，測試 UI 用
-  ui.hideAuthOverlay();
-  await loadData();
-  initMap();
-  bindAppEvents();
+  bindAuthEvents();
+
+  if (user) {
+    ui.hideAuthOverlay();
+    await loadData();
+    initMap();
+    bindAppEvents();
+  }
 }
 
 async function loadData() {
@@ -83,6 +86,7 @@ function renderActiveTrip() {
   ui.renderBudget(trip);
   ui.renderPrefs(preferences);
   ui.renderDataPanel();
+  bindChecklistEvents(trip);
   bindDataPanelEvents();
 
   if (trip) mapMgr.renderTrip(trip);
@@ -127,6 +131,65 @@ function bindAppEvents() {
   });
 }
 
+/* ── Checklist (Todo / Packing) ── */
+function bindChecklistEvents(trip) {
+  if (!trip) return;
+
+  // Collapsible toggle for checklist sections
+  document.querySelectorAll('[data-toggle]').forEach(hdr => {
+    hdr.addEventListener('click', () => {
+      const bodyId = hdr.dataset.toggle;
+      const body   = document.getElementById(bodyId);
+      const arrow  = hdr.querySelector('.seg-arrow');
+      if (!body) return;
+      const hidden = body.style.display === 'none';
+      body.style.display = hidden ? 'block' : 'none';
+      if (arrow) arrow.textContent = hidden ? '▼' : '▶';
+    });
+  });
+
+  // Todo checkbox toggle
+  document.querySelectorAll('[data-todo-id]').forEach(item => {
+    item.addEventListener('click', () => toggleTodo(trip, item.dataset.todoId));
+  });
+
+  // Packing checkbox toggle
+  document.querySelectorAll('[data-packing-id]').forEach(item => {
+    item.addEventListener('click', () => togglePacking(trip, item.dataset.packingId));
+  });
+}
+
+async function toggleTodo(trip, id) {
+  const item = (trip.todo || []).find(t => t.id === id);
+  if (!item) return;
+  item.done = !item.done;
+  await persistTrip(trip);
+  ui.renderTimeline(trip);
+  bindChecklistEvents(trip);
+}
+
+async function togglePacking(trip, id) {
+  const item = (trip.packing || []).find(p => p.id === id);
+  if (!item) return;
+  item.done = !item.done;
+  await persistTrip(trip);
+  ui.renderTimeline(trip);
+  bindChecklistEvents(trip);
+}
+
+async function persistTrip(trip) {
+  const { trips, user, isOnline } = getState();
+  const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  const idx = (trips.current_trips || []).findIndex(t => t.id === trip.id);
+  if (idx !== -1) trips.current_trips[idx] = trip;
+  setState({ trips });
+  saveCache(trips, getState().preferences);
+  if (user && isOnline) {
+    try { await api.saveTrips(user.id, trips); } catch { /* silent */ }
+  }
+}
+
+/* ── Data Panel ── */
 function bindDataPanelEvents() {
   const importTripsFile = document.getElementById('import-trips-file');
   if (importTripsFile) importTripsFile.addEventListener('change', async (e) => {
@@ -183,13 +246,49 @@ function bindDataPanelEvents() {
       const { id } = await api.createShare(trip, preferences);
       const url = `${location.origin}/share.html?id=${id}`;
       const resultEl = document.getElementById('share-result');
-      const urlEl = document.getElementById('share-url');
+      const urlEl    = document.getElementById('share-url');
       if (resultEl) resultEl.style.display = 'block';
       if (urlEl) urlEl.textContent = url;
       const copyBtn = document.getElementById('copy-share-btn');
       if (copyBtn) copyBtn.onclick = () => navigator.clipboard.writeText(url).then(() => showToast('已複製', 'success'));
     } catch (err) { showToast(`分享失敗：${err.message}`, 'error'); }
     finally { shareBtn.disabled = false; shareBtn.textContent = '建立唯讀分享連結（TTL 30天）'; }
+  });
+
+  /* ── Add Expense ── */
+  const addExpenseBtn = document.getElementById('add-expense-btn');
+  if (addExpenseBtn) addExpenseBtn.addEventListener('click', () => {
+    const { trips, activeTripId } = getState();
+    const trip = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === activeTripId);
+    if (!trip) return;
+    ui.renderExpenseForm(trip);
+    bindExpenseFormEvents(trip);
+  });
+}
+
+function bindExpenseFormEvents(trip) {
+  const saveBtn   = document.getElementById('ef-save');
+  const cancelBtn = document.getElementById('ef-cancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', () => {
+    const wrap = document.getElementById('expense-form-wrap');
+    if (wrap) wrap.innerHTML = '';
+  });
+  if (saveBtn) saveBtn.addEventListener('click', async () => {
+    const date     = document.getElementById('ef-date')?.value;
+    const category = document.getElementById('ef-category')?.value;
+    const amount   = parseFloat(document.getElementById('ef-amount')?.value);
+    const currency = document.getElementById('ef-currency')?.value?.trim() || trip.base_currency || 'TWD';
+    const segEl    = document.getElementById('ef-segment');
+    const note     = document.getElementById('ef-note')?.value?.trim();
+    if (!date || !category || isNaN(amount) || amount <= 0) {
+      showToast('請填寫日期、類別和金額', 'warn'); return;
+    }
+    const newExp = { id: generateId('exp'), segment_id: segEl?.value || null, date, category, amount, currency, note: note || '' };
+    trip.expenses = [...(trip.expenses || []), newExp];
+    await persistTrip(trip);
+    showToast('花費已新增', 'success');
+    ui.renderBudget(trip);
+    bindDataPanelEvents();
   });
 }
 
@@ -239,7 +338,7 @@ async function exportExcel() {
 
 function bindAuthEvents() {
   const emailForm = document.getElementById('auth-email-form');
-  const otpForm = document.getElementById('auth-otp-form');
+  const otpForm   = document.getElementById('auth-otp-form');
 
   emailForm?.addEventListener('submit', async (e) => {
     e.preventDefault();

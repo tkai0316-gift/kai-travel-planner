@@ -4,8 +4,8 @@
   "description": "個人旅遊規劃 Web App",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0EA5E9",
   "orientation": "any",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
