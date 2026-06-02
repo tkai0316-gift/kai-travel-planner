@@ -273,6 +273,25 @@ button, input, select {
 
 .checklist-text { font-size: 13px; color: var(--c-text); }
 
+.checklist-add-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--pp);
+  border-top: 1px dashed var(--c-border);
+}
+.checklist-add-input {
+  flex: 1;
+  font-size: 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-btn);
+  padding: 5px 8px;
+  outline: none;
+  font-family: inherit;
+  min-width: 0;
+}
+.checklist-add-input:focus { border-color: var(--c-primary); }
+
 /* ── Budget ── */
 .budget-summary {
   background: var(--c-surface);
@@ -308,6 +327,14 @@ button, input, select {
 .expense-date { font-size: 11px; color: var(--c-muted-lt); width: 52px; flex-shrink: 0; }
 .expense-note { font-size: 12px; color: var(--c-text-2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .expense-amount { font-size: 12px; font-weight: 600; color: var(--c-text); }
+.expense-del-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: var(--c-muted-lt); padding: 0 2px; line-height: 1;
+  flex-shrink: 0; opacity: 0;
+  transition: opacity .15s, color .15s;
+}
+.expense-row:hover .expense-del-btn { opacity: 1; }
+.expense-del-btn:hover { color: #ef4444; }
 
 /* ── Add Expense Form ── */
 .expense-form {

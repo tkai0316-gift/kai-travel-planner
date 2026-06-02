@@ -4,6 +4,12 @@ import * as mapMgr from './mapManager.js';
 import * as ui from './uiRenderer.js';
 import { showToast, generateId, esc, ICON_GLOBE } from './utils.js';
 
+function getActiveTrip() {
+  const { trips, activeTripId } = getState();
+  const all = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  return all.find(t => t.id === activeTripId) || null;
+}
+
 let pendingEmail = '';
 
 async function init() {
@@ -24,8 +30,7 @@ async function init() {
 
   bindAuthEvents();
 
-  // DEV BYPASS — remove before production
-  if (true || user) {
+  if (user) {
     ui.hideAuthOverlay();
     await loadData();
     initMap();
@@ -147,9 +152,8 @@ function bindAppEvents() {
   document.getElementById('timeline-content')?.addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (!btn) return;
-    const { trips, activeTripId } = getState();
-    const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
-    const activeTrip = allTrips.find(t => t.id === activeTripId) || null;
+    const { activeTripId } = getState();
+    const activeTrip = getActiveTrip();
 
     if (btn.id === 'add-trip-btn') {
       openTripModal(null);
@@ -160,6 +164,12 @@ function bindAppEvents() {
     } else if (btn.classList.contains('seg-edit-btn')) {
       const seg = activeTrip?.segments?.find(s => s.id === btn.dataset.segId);
       if (seg) openSegModal(seg, activeTripId);
+    } else if (btn.classList.contains('add-day-btn')) {
+      openDayModal(null, btn.dataset.segId, activeTripId);
+    } else if (btn.classList.contains('day-edit-btn')) {
+      const seg = activeTrip?.segments?.find(s => s.id === btn.dataset.segId);
+      const day = seg?.daily?.[parseInt(btn.dataset.dayIndex, 10)];
+      if (day) openDayModal(day, btn.dataset.segId, activeTripId, parseInt(btn.dataset.dayIndex, 10));
     }
   });
 }
@@ -285,7 +295,6 @@ function bindPrefsEditEvents(initPrefs) {
 function bindChecklistEvents(trip) {
   if (!trip) return;
 
-  // Collapsible toggle for checklist sections
   document.querySelectorAll('[data-toggle]').forEach(hdr => {
     hdr.addEventListener('click', () => {
       const bodyId = hdr.dataset.toggle;
@@ -298,14 +307,44 @@ function bindChecklistEvents(trip) {
     });
   });
 
-  // Todo checkbox toggle
   document.querySelectorAll('[data-todo-id]').forEach(item => {
     item.addEventListener('click', () => toggleTodo(trip, item.dataset.todoId));
   });
 
-  // Packing checkbox toggle
   document.querySelectorAll('[data-packing-id]').forEach(item => {
     item.addEventListener('click', () => togglePacking(trip, item.dataset.packingId));
+  });
+
+  document.getElementById('todo-add-btn')?.addEventListener('click', () => {
+    const input = document.getElementById('todo-add-input');
+    const text = input?.value.trim();
+    if (!text) return;
+    trip.todo = [...(trip.todo || []), { id: generateId('todo'), text, done: false }];
+    persistTrip(trip).then(ok => {
+      if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
+      else trip.todo.pop();
+    });
+  });
+
+  document.getElementById('todo-add-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('todo-add-btn')?.click();
+  });
+
+  document.getElementById('packing-add-btn')?.addEventListener('click', () => {
+    const nameInput = document.getElementById('packing-add-input');
+    const catInput  = document.getElementById('packing-cat-input');
+    const text = nameInput?.value.trim();
+    if (!text) return;
+    const category = catInput?.value.trim() || '其他';
+    trip.packing = [...(trip.packing || []), { id: generateId('pack'), text, category, done: false }];
+    persistTrip(trip).then(ok => {
+      if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
+      else trip.packing.pop();
+    });
+  });
+
+  document.getElementById('packing-add-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('packing-add-btn')?.click();
   });
 }
 
@@ -432,14 +471,26 @@ function bindDataPanelEvents() {
     finally { shareBtn.disabled = false; shareBtn.textContent = '建立唯讀分享連結（TTL 30天）'; }
   });
 
-  /* ── Add Expense ── */
-  const addExpenseBtn = document.getElementById('add-expense-btn');
-  if (addExpenseBtn) addExpenseBtn.addEventListener('click', () => {
-    const { trips, activeTripId } = getState();
-    const trip = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === activeTripId);
+  /* ── Budget panel event delegation ── */
+  document.getElementById('budget-content')?.addEventListener('click', e => {
+    const trip = getActiveTrip();
     if (!trip) return;
-    ui.renderExpenseForm(trip);
-    bindExpenseFormEvents(trip);
+
+    if (e.target.id === 'add-expense-btn' || e.target.closest('#add-expense-btn')) {
+      ui.renderExpenseForm(trip);
+      bindExpenseFormEvents(trip);
+      return;
+    }
+
+    const delBtn = e.target.closest('.expense-del-btn');
+    if (delBtn) {
+      const expId = delBtn.dataset.expenseId;
+      trip.expenses = (trip.expenses || []).filter(ex => ex.id !== expId);
+      persistTrip(trip).then(ok => {
+        if (ok) ui.renderBudget(trip);
+        else trip.expenses = getActiveTrip()?.expenses || trip.expenses;
+      });
+    }
   });
 }
 
@@ -723,6 +774,92 @@ async function handleDeleteSeg(segId, tripId) {
   if (!ok) return;
   renderActiveTrip();
   showToast('分段已刪除', 'success');
+}
+
+/* ── Day Modal ── */
+function openDayModal(day, segId, tripId, dayIndex = -1) {
+  const { trips } = getState();
+  const trip = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === tripId);
+  const seg  = trip?.segments?.find(s => s.id === segId);
+  ui.renderDayModal(day, seg?.start_date || '', seg?.end_date || '');
+
+  const overlay = document.getElementById('day-modal');
+  overlay.onclick = e => { if (e.target === overlay) closeDayModal(); };
+  document.getElementById('day-modal-close').onclick = closeDayModal;
+  document.getElementById('dm-cancel').onclick = closeDayModal;
+  document.getElementById('dm-save').onclick = () => saveDayFromModal(dayIndex, segId, tripId);
+
+  const delBtn = document.getElementById('dm-delete');
+  if (delBtn) delBtn.onclick = () => {
+    if (confirm('確定要刪除此日程？')) {
+      closeDayModal();
+      handleDeleteDay(dayIndex, segId, tripId);
+    }
+  };
+}
+
+function closeDayModal() {
+  document.getElementById('day-modal')?.classList.remove('open');
+}
+
+async function saveDayFromModal(existingIndex, segId, tripId) {
+  const date  = document.getElementById('dm-date')?.value;
+  const type  = document.getElementById('dm-type')?.value || 'sightseeing';
+  const title = document.getElementById('dm-title')?.value.trim();
+  const note  = document.getElementById('dm-note')?.value.trim();
+  const latRaw = document.getElementById('dm-lat')?.value;
+  const lngRaw = document.getElementById('dm-lng')?.value;
+  const lat = latRaw !== '' && latRaw != null ? parseFloat(latRaw) : null;
+  const lng = lngRaw !== '' && lngRaw != null ? parseFloat(lngRaw) : null;
+
+  if (!date)  { showToast('請填寫日期', 'warn'); return; }
+  if (!title) { showToast('請填寫標題', 'warn'); return; }
+
+  let transport = null;
+  if (type === 'transport') {
+    transport = {
+      mode:           document.getElementById('dm-t-mode')?.value || 'other',
+      from:           document.getElementById('dm-t-from')?.value.trim() || '',
+      to:             document.getElementById('dm-t-to')?.value.trim() || '',
+      carrier:        document.getElementById('dm-t-carrier')?.value.trim() || '',
+      duration_hours: parseFloat(document.getElementById('dm-t-duration')?.value) || null,
+    };
+  }
+
+  const { trips } = getState();
+  const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  const trip = allTrips.find(t => t.id === tripId);
+  const seg  = trip?.segments?.find(s => s.id === segId);
+  if (!trip || !seg) return;
+
+  const dayData = { date, type, title, note: note || '', lat, lng, transport };
+
+  const days = [...(seg.daily || [])];
+  if (existingIndex >= 0) days[existingIndex] = dayData;
+  else days.push(dayData);
+
+  days.sort((a, b) => a.date.localeCompare(b.date));
+  seg.daily = days;
+
+  const ok = await persistTrip(trip);
+  if (!ok) return;
+
+  closeDayModal();
+  renderActiveTrip();
+  showToast(existingIndex >= 0 ? '日程已更新' : '日程已新增', 'success');
+}
+
+async function handleDeleteDay(dayIndex, segId, tripId) {
+  const { trips } = getState();
+  const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  const trip = allTrips.find(t => t.id === tripId);
+  const seg  = trip?.segments?.find(s => s.id === segId);
+  if (!trip || !seg) return;
+  seg.daily = (seg.daily || []).filter((_, i) => i !== dayIndex);
+  const ok = await persistTrip(trip);
+  if (!ok) return;
+  renderActiveTrip();
+  showToast('日程已刪除', 'success');
 }
 
 init().catch(console.error);

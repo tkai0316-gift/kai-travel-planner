@@ -112,12 +112,17 @@ function renderSegment(seg) {
         <div class="seg-dot" style="background:${color}"></div>
         <button class="btn btn-icon btn-sm seg-edit-btn" data-seg-id="${esc(seg.id)}" data-edit title="編輯分段">${ICON_EDIT}</button>
       </div>
-      <div class="seg-body">${days.map(day => renderDayCard(day)).join('')}</div>
+      <div class="seg-body">
+        ${days.map((day, i) => renderDayCard(day, i, seg.id)).join('')}
+        <div style="padding:4px var(--pp) 8px">
+          <button class="btn btn-link btn-sm add-day-btn" data-seg-id="${esc(seg.id)}" data-edit>＋ 新增日程</button>
+        </div>
+      </div>
     </div>
   `;
 }
 
-function renderDayCard(day) {
+function renderDayCard(day, dayIndex, segId) {
   const isTransport = day.type === 'transport';
   const hasLoc = day.lat != null && day.lng != null;
   const t = day.transport;
@@ -127,6 +132,7 @@ function renderDayCard(day) {
     : '';
   return `
     <div data-day="${esc(day.date)}" data-lat="${day.lat ?? ''}" data-lng="${day.lng ?? ''}"
+         data-day-index="${dayIndex}" data-seg-id="${esc(segId)}"
          class="day-card${isTransport ? ' is-transport' : ''}">
       <div class="day-icon day-icon-${esc(day.type || 'sightseeing')}">${icon}</div>
       <div class="day-body">
@@ -135,7 +141,10 @@ function renderDayCard(day) {
         ${transportHtml}
         ${day.note ? `<div class="day-note">${esc(day.note)}</div>` : ''}
       </div>
-      ${hasLoc ? '<div class="day-loc-dot" title="已標記座標"></div>' : ''}
+      <div style="display:flex;align-items:center;gap:2px;flex-shrink:0">
+        ${hasLoc ? '<div class="day-loc-dot" title="已標記座標"></div>' : ''}
+        <button class="btn btn-icon btn-sm day-edit-btn" data-day-index="${dayIndex}" data-seg-id="${esc(segId)}" data-edit title="編輯日程" style="opacity:.5">${ICON_EDIT}</button>
+      </div>
     </div>
   `;
 }
@@ -144,7 +153,6 @@ function renderDayCard(day) {
 function renderTodoPacking(trip) {
   const todo    = trip.todo    || [];
   const packing = trip.packing || [];
-  if (!todo.length && !packing.length) return '';
 
   const doneTodo    = todo.filter(i => i.done).length;
   const donePacking = packing.filter(i => i.done).length;
@@ -155,7 +163,6 @@ function renderTodoPacking(trip) {
       <span class="checklist-text">${esc(item.text)}</span>
     </div>`).join('');
 
-  // group packing by category
   const catMap = {};
   packing.forEach(p => { (catMap[p.category || '其他'] ??= []).push(p); });
   const packingItems = Object.entries(catMap).map(([cat, items]) => `
@@ -167,24 +174,35 @@ function renderTodoPacking(trip) {
     </div>`).join('')}`).join('');
 
   return `
-    ${todo.length ? `
     <div class="checklist-section">
       <div class="checklist-header" data-toggle="todo-body">
         <span class="seg-arrow">▼</span>
         <span class="checklist-header-title">待辦清單</span>
         <span class="checklist-count">${doneTodo}/${todo.length}</span>
       </div>
-      <div id="todo-body">${todoItems}</div>
-    </div>` : ''}
-    ${packing.length ? `
+      <div id="todo-body">
+        ${todoItems}
+        <div class="checklist-add-row" data-edit>
+          <input class="checklist-add-input" id="todo-add-input" placeholder="新增待辦事項" maxlength="100">
+          <button class="btn btn-link btn-sm" id="todo-add-btn" data-edit>新增</button>
+        </div>
+      </div>
+    </div>
     <div class="checklist-section">
       <div class="checklist-header" data-toggle="packing-body">
         <span class="seg-arrow">▼</span>
         <span class="checklist-header-title">打包清單</span>
         <span class="checklist-count">${donePacking}/${packing.length}</span>
       </div>
-      <div id="packing-body">${packingItems}</div>
-    </div>` : ''}
+      <div id="packing-body">
+        ${packingItems}
+        <div class="checklist-add-row" data-edit>
+          <input class="checklist-add-input" id="packing-add-input" placeholder="物品名稱" maxlength="100" style="flex:2">
+          <input class="checklist-add-input" id="packing-cat-input" placeholder="分類" maxlength="40" style="flex:1">
+          <button class="btn btn-link btn-sm" id="packing-add-btn" data-edit>新增</button>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -251,10 +269,11 @@ export function renderBudget(trip) {
 
 function renderExpenseRow(e, fallbackCurrency) {
   return `
-    <div class="expense-row">
+    <div class="expense-row" data-expense-id="${esc(e.id)}">
       <span class="expense-date">${esc(e.date?.slice(5) || '')}</span>
       <span class="expense-note">${esc(e.note || e.category)}</span>
       <span class="expense-amount">${esc(formatCurrency(e.amount, e.currency || fallbackCurrency))}</span>
+      <button class="expense-del-btn" data-expense-id="${esc(e.id)}" data-edit title="刪除">×</button>
     </div>`;
 }
 
@@ -494,6 +513,90 @@ export function renderSegModal(seg, tripStart, tripEnd) {
     <button class="btn btn-primary" id="sm-save">儲存</button>
   `;
   document.getElementById('seg-modal').classList.add('open');
+}
+
+/* ── Day Modal ── */
+export function renderDayModal(day, segStart, segEnd) {
+  const isEdit = !!day;
+  const d = day || { date: '', type: 'sightseeing', title: '', note: '', lat: null, lng: null };
+  const t = d.transport || {};
+  const types = ['sightseeing','transport','trekking','diving','rest'];
+  const typeLabels = { sightseeing:'觀光', transport:'交通', trekking:'健行', diving:'潛水', rest:'休息' };
+  const transportModes = ['flight','overnight_train','bus','ferry','car','other'];
+  const modeLabels = { flight:'飛機', overnight_train:'夜臥火車', bus:'巴士', ferry:'渡輪', car:'自駕', other:'其他' };
+  const minAttr = segStart ? `min="${esc(segStart)}"` : '';
+  const maxAttr = segEnd   ? `max="${esc(segEnd)}"`   : '';
+
+  document.getElementById('day-modal-title').textContent = isEdit ? '編輯日程' : '新增日程';
+  document.getElementById('day-modal-body').innerHTML = `
+    <div class="form-row">
+      <label class="form-label">日期 <span style="color:#dc2626">*</span></label>
+      <input type="date" class="form-input" id="dm-date" value="${esc(d.date || '')}" ${minAttr} ${maxAttr} required>
+    </div>
+    <div class="form-row">
+      <label class="form-label">類型</label>
+      <select class="form-input" id="dm-type">
+        ${types.map(tp => `<option value="${tp}"${d.type===tp?' selected':''}>${typeLabels[tp]}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">標題 <span style="color:#dc2626">*</span></label>
+      <input class="form-input" id="dm-title" maxlength="100" value="${esc(d.title || '')}" placeholder="例：淺草寺、搭乘 NH203">
+    </div>
+    <div class="form-row">
+      <label class="form-label">備註</label>
+      <input class="form-input" id="dm-note" maxlength="200" value="${esc(d.note || '')}" placeholder="選填">
+    </div>
+    <div class="form-2col">
+      <div class="form-row">
+        <label class="form-label">緯度</label>
+        <input type="number" class="form-input" id="dm-lat" step="any" value="${d.lat ?? ''}" placeholder="35.6812">
+      </div>
+      <div class="form-row">
+        <label class="form-label">經度</label>
+        <input type="number" class="form-input" id="dm-lng" step="any" value="${d.lng ?? ''}" placeholder="139.7671">
+      </div>
+    </div>
+    <div id="dm-transport-wrap" style="display:${d.type==='transport'?'block':'none'};margin-top:4px;padding-top:8px;border-top:1px solid var(--c-border)">
+      <div class="form-2col">
+        <div class="form-row">
+          <label class="form-label">交通方式</label>
+          <select class="form-input" id="dm-t-mode">
+            ${transportModes.map(m => `<option value="${m}"${t.mode===m?' selected':''}>${modeLabels[m]}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">時長（小時）</label>
+          <input type="number" class="form-input" id="dm-t-duration" min="0" step="0.5" value="${t.duration_hours ?? ''}">
+        </div>
+      </div>
+      <div class="form-2col">
+        <div class="form-row">
+          <label class="form-label">出發地</label>
+          <input class="form-input" id="dm-t-from" maxlength="60" value="${esc(t.from || '')}">
+        </div>
+        <div class="form-row">
+          <label class="form-label">目的地</label>
+          <input class="form-input" id="dm-t-to" maxlength="60" value="${esc(t.to || '')}">
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">航班/班次</label>
+        <input class="form-input" id="dm-t-carrier" maxlength="60" value="${esc(t.carrier || '')}">
+      </div>
+    </div>
+  `;
+
+  document.getElementById('dm-type').addEventListener('change', e => {
+    document.getElementById('dm-transport-wrap').style.display = e.target.value === 'transport' ? 'block' : 'none';
+  });
+
+  document.getElementById('day-modal-footer').innerHTML = `
+    ${isEdit ? `<button class="btn btn-danger btn-sm" id="dm-delete" style="margin-right:auto">刪除</button>` : ''}
+    <button class="btn btn-secondary" id="dm-cancel">取消</button>
+    <button class="btn btn-primary" id="dm-save">儲存</button>
+  `;
+  document.getElementById('day-modal').classList.add('open');
 }
 
 /* ── Auth ── */
