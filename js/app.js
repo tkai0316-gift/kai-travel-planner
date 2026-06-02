@@ -24,7 +24,8 @@ async function init() {
 
   bindAuthEvents();
 
-  if (user) {
+  // DEV BYPASS — remove before production
+  if (true || user) {
     ui.hideAuthOverlay();
     await loadData();
     initMap();
