@@ -164,7 +164,8 @@ async function toggleTodo(trip, id) {
   const item = (trip.todo || []).find(t => t.id === id);
   if (!item) return;
   item.done = !item.done;
-  await persistTrip(trip);
+  const ok = await persistTrip(trip);
+  if (!ok) item.done = !item.done;
   ui.renderTimeline(trip);
   bindChecklistEvents(trip);
 }
@@ -173,21 +174,35 @@ async function togglePacking(trip, id) {
   const item = (trip.packing || []).find(p => p.id === id);
   if (!item) return;
   item.done = !item.done;
-  await persistTrip(trip);
+  const ok = await persistTrip(trip);
+  if (!ok) item.done = !item.done;
   ui.renderTimeline(trip);
   bindChecklistEvents(trip);
 }
 
 async function persistTrip(trip) {
   const { trips, user, isOnline } = getState();
-  const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+
+  if (!isOnline) {
+    showToast('離線中，無法儲存', 'warn');
+    return false;
+  }
+
   const idx = (trips.current_trips || []).findIndex(t => t.id === trip.id);
   if (idx !== -1) trips.current_trips[idx] = trip;
+
+  if (user) {
+    try {
+      await api.saveTrips(user.id, trips);
+    } catch {
+      showToast('儲存失敗，請重試', 'error');
+      return false;
+    }
+  }
+
   setState({ trips });
   saveCache(trips, getState().preferences);
-  if (user && isOnline) {
-    try { await api.saveTrips(user.id, trips); } catch { /* silent */ }
-  }
+  return true;
 }
 
 /* ── Data Panel ── */
@@ -286,7 +301,8 @@ function bindExpenseFormEvents(trip) {
     }
     const newExp = { id: generateId('exp'), segment_id: segEl?.value || null, date, category, amount, currency, note: note || '' };
     trip.expenses = [...(trip.expenses || []), newExp];
-    await persistTrip(trip);
+    const ok = await persistTrip(trip);
+    if (!ok) { trip.expenses = trip.expenses.slice(0, -1); return; }
     showToast('花費已新增', 'success');
     ui.renderBudget(trip);
     bindDataPanelEvents();
