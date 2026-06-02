@@ -113,11 +113,23 @@ function bindAppEvents() {
     if (btn) btn.addEventListener('click', () => { setState({ activeTab: tab }); ui.setActiveTab(tab); });
   });
 
-  const sel = document.getElementById('trip-selector');
-  if (sel) sel.addEventListener('change', (e) => {
-    setState({ activeTripId: e.target.value });
-    renderActiveTrip();
-  });
+  const tripSelBtn = document.getElementById('trip-selector-btn');
+  const tripSelList = document.getElementById('trip-selector-list');
+  if (tripSelBtn && tripSelList) {
+    tripSelBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = tripSelList.style.display !== 'none';
+      tripSelList.style.display = isOpen ? 'none' : 'block';
+    });
+    tripSelList.addEventListener('click', (e) => {
+      const li = e.target.closest('li[data-trip-id]');
+      if (!li) return;
+      tripSelList.style.display = 'none';
+      setState({ activeTripId: li.dataset.tripId });
+      renderActiveTrip();
+    });
+    document.addEventListener('click', () => { tripSelList.style.display = 'none'; });
+  }
 
   window.addEventListener('kai-travel:day-click', (e) => {
     const { lat, lng } = e.detail;

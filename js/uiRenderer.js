@@ -33,12 +33,16 @@ export function setActiveTab(tab) {
 
 /* ── Trip Selector ── */
 export function renderTripSelector(trips, activeTripId) {
-  const sel = document.getElementById('trip-selector');
-  if (!sel) return;
+  const btn = document.getElementById('trip-selector-btn');
+  const label = document.getElementById('trip-selector-label');
+  const list = document.getElementById('trip-selector-list');
+  if (!btn || !list) return;
   const all = [...(trips.current_trips || []), ...(trips.past_trips || [])];
-  if (all.length === 0) { sel.innerHTML = '<option value="">（尚無行程）</option>'; return; }
-  sel.innerHTML = all.map(t =>
-    `<option value="${esc(t.id)}"${t.id === activeTripId ? ' selected' : ''}>${esc(t.title)}</option>`
+  if (all.length === 0) { if (label) label.textContent = '（尚無行程）'; list.innerHTML = ''; return; }
+  const active = all.find(t => t.id === activeTripId) || all[0];
+  if (label) label.textContent = active ? active.title : '';
+  list.innerHTML = all.map(t =>
+    `<li data-trip-id="${esc(t.id)}" class="${t.id === activeTripId ? 'active' : ''}">${esc(t.title)}</li>`
   ).join('');
 }
 

@@ -53,9 +53,13 @@
     <!-- Header -->
     <div class="panel-header">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      <div style="flex:1;min-width:0">
+      <div style="flex:1;min-width:0;position:relative">
         <div class="panel-title">Kai Travel</div>
-        <select id="trip-selector" style="font-size:11px;color:var(--c-muted);background:transparent;border:none;outline:none;max-width:200px;cursor:pointer;font-family:inherit"></select>
+        <button id="trip-selector-btn" class="trip-sel-btn" type="button">
+          <span id="trip-selector-label">載入中...</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <ul id="trip-selector-list" class="trip-dropdown" style="display:none"></ul>
       </div>
       <div id="online-dot" title="連線狀態"></div>
       <button id="signout-btn" title="登出" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;color:var(--c-muted-lt)">
