@@ -630,7 +630,10 @@ async function handleDeleteTrip(tripId) {
 
 /* ── Segment Modal ── */
 function openSegModal(seg, tripId) {
-  ui.renderSegModal(seg);
+  const { trips } = getState();
+  const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  const trip     = allTrips.find(t => t.id === tripId);
+  ui.renderSegModal(seg, trip?.start_date || '', trip?.end_date || '');
   const segId = seg?.id || null;
 
   const overlay = document.getElementById('seg-modal');
@@ -673,6 +676,13 @@ async function saveSegFromModal(existingId, tripId) {
   const allTrips  = [...(trips.current_trips || []), ...(trips.past_trips || [])];
   const trip      = allTrips.find(t => t.id === tripId);
   if (!trip) return;
+
+  if (trip.start_date && start < trip.start_date) {
+    showToast(`分段開始日期不能早於行程（${trip.start_date}）`, 'warn'); return;
+  }
+  if (trip.end_date && end > trip.end_date) {
+    showToast(`分段結束日期不能晚於行程（${trip.end_date}）`, 'warn'); return;
+  }
 
   const segments = [...(trip.segments || [])];
   const idx      = segments.findIndex(s => s.id === existingId);

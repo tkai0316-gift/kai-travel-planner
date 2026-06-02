@@ -418,17 +418,17 @@ export function renderTripModal(trip) {
   document.getElementById('trip-modal-title').textContent = isEdit ? '編輯行程' : '新增行程';
   document.getElementById('trip-modal-body').innerHTML = `
     <div class="form-row">
-      <label class="form-label">行程名稱</label>
-      <input class="form-input" id="tm-title" maxlength="80" value="${esc(t.title)}" placeholder="例：東京春旅">
+      <label class="form-label">行程名稱 <span style="color:#dc2626">*</span></label>
+      <input class="form-input" id="tm-title" maxlength="80" value="${esc(t.title)}" placeholder="例：東京春旅" required>
     </div>
     <div class="form-2col">
       <div class="form-row">
-        <label class="form-label">開始日期</label>
-        <input type="date" class="form-input" id="tm-start" value="${esc(t.start_date || '')}">
+        <label class="form-label">開始日期 <span style="color:#dc2626">*</span></label>
+        <input type="date" class="form-input" id="tm-start" value="${esc(t.start_date || '')}" required>
       </div>
       <div class="form-row">
-        <label class="form-label">結束日期</label>
-        <input type="date" class="form-input" id="tm-end" value="${esc(t.end_date || '')}">
+        <label class="form-label">結束日期 <span style="color:#dc2626">*</span></label>
+        <input type="date" class="form-input" id="tm-end" value="${esc(t.end_date || '')}" required>
       </div>
     </div>
     <div class="form-row">
@@ -459,24 +459,26 @@ export function renderTripModal(trip) {
 }
 
 /* ── Segment Modal ── */
-export function renderSegModal(seg) {
+export function renderSegModal(seg, tripStart, tripEnd) {
   const isEdit = !!seg;
   const s = seg || { name: '', start_date: '', end_date: '', color: SEG_COLORS[0] };
   const selectedColor = s.color || SEG_COLORS[0];
+  const minAttr = tripStart ? `min="${esc(tripStart)}"` : '';
+  const maxAttr = tripEnd   ? `max="${esc(tripEnd)}"`   : '';
   document.getElementById('seg-modal-title').textContent = isEdit ? '編輯分段' : '新增分段';
   document.getElementById('seg-modal-body').innerHTML = `
     <div class="form-row">
-      <label class="form-label">分段名稱</label>
-      <input class="form-input" id="sm-name" maxlength="60" value="${esc(s.name)}" placeholder="例：東京">
+      <label class="form-label">分段名稱 <span style="color:#dc2626">*</span></label>
+      <input class="form-input" id="sm-name" maxlength="60" value="${esc(s.name)}" placeholder="例：東京" required>
     </div>
     <div class="form-2col">
       <div class="form-row">
-        <label class="form-label">開始日期</label>
-        <input type="date" class="form-input" id="sm-start" value="${esc(s.start_date || '')}">
+        <label class="form-label">開始日期 <span style="color:#dc2626">*</span></label>
+        <input type="date" class="form-input" id="sm-start" value="${esc(s.start_date || '')}" ${minAttr} ${maxAttr} required>
       </div>
       <div class="form-row">
-        <label class="form-label">結束日期</label>
-        <input type="date" class="form-input" id="sm-end" value="${esc(s.end_date || '')}">
+        <label class="form-label">結束日期 <span style="color:#dc2626">*</span></label>
+        <input type="date" class="form-input" id="sm-end" value="${esc(s.end_date || '')}" ${minAttr} ${maxAttr} required>
       </div>
     </div>
     <div class="form-row">
