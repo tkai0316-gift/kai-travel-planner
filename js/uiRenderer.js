@@ -68,10 +68,18 @@ export function renderTimeline(trip) {
   const packedCount = packing.filter(p => p.done).length;
   const allPacked = packing.length > 0 && packedCount === packing.length;
   let daysChip = '';
-  if (trip.end_date) {
-    const diff = Math.ceil((new Date(trip.end_date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
-    if (diff === 0) daysChip = `<span class="trip-stat-chip accent">今天出發</span>`;
-    else if (diff > 0 && diff <= 90) daysChip = `<span class="trip-stat-chip">還有 ${diff} 天</span>`;
+  if (trip.start_date && trip.end_date) {
+    const startDiff = Math.ceil((new Date(trip.start_date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+    const endDiff   = Math.ceil((new Date(trip.end_date   + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+    if (startDiff === 0) {
+      daysChip = `<span class="trip-stat-chip accent">今天出發 🎉</span>`;
+    } else if (startDiff > 0 && startDiff <= 90) {
+      daysChip = `<span class="trip-stat-chip">還有 ${startDiff} 天</span>`;
+    } else if (startDiff < 0 && endDiff >= 0) {
+      const dayNum = -startDiff + 1;
+      const totalTripDays = Math.ceil((new Date(trip.end_date + 'T00:00:00') - new Date(trip.start_date + 'T00:00:00')) / 86400000) + 1;
+      daysChip = `<span class="trip-stat-chip accent">旅途中 · 第 ${dayNum} / ${totalTripDays} 天</span>`;
+    }
   }
   const statsHtml = `<div class="trip-stats">
     ${totalDays ? `<span class="trip-stat-chip">${totalDays} 天行程</span>` : ''}
@@ -94,7 +102,7 @@ export function renderTimeline(trip) {
       ${statsHtml}
       ${trip.notes ? `<div class="trip-notes">${esc(trip.notes)}</div>` : ''}
     </div>
-    <div id="segments-container">${(trip.segments || []).map(seg => renderSegment(seg)).join('')}</div>
+    <div id="segments-container">${(trip.segments || []).map(seg => renderSegment(seg, today)).join('')}</div>
     ${renderTodoPacking(trip)}
   `;
 
@@ -120,9 +128,14 @@ export function renderTimeline(trip) {
       }));
     });
   });
+
+  setTimeout(() => {
+    const todayCard = el.querySelector('.day-card.is-today');
+    if (todayCard) todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 150);
 }
 
-function renderSegment(seg) {
+function renderSegment(seg, today = '') {
   const color = esc(seg.color || '#64748b');
   const days  = seg.daily || [];
   return `
@@ -137,7 +150,7 @@ function renderSegment(seg) {
         <button class="btn btn-icon btn-sm seg-edit-btn" data-seg-id="${esc(seg.id)}" data-edit title="編輯分段">${ICON_EDIT}</button>
       </div>
       <div class="seg-body">
-        ${days.map((day, i) => renderDayCard(day, i, seg.id)).join('')}
+        ${days.map((day, i) => renderDayCard(day, i, seg.id, today)).join('')}
         <div style="padding:4px var(--pp) 8px">
           <button class="btn btn-link btn-sm add-day-btn" data-seg-id="${esc(seg.id)}" data-edit>＋ 新增日程</button>
         </div>
@@ -146,8 +159,9 @@ function renderSegment(seg) {
   `;
 }
 
-function renderDayCard(day, dayIndex, segId) {
+function renderDayCard(day, dayIndex, segId, today = '') {
   const isTransport = day.type === 'transport';
+  const isToday = today && day.date === today;
   const hasLoc = day.lat != null && day.lng != null;
   const t = day.transport;
   const icon = TYPE_ICONS[day.type] || TYPE_ICONS.sightseeing;
@@ -157,10 +171,10 @@ function renderDayCard(day, dayIndex, segId) {
   return `
     <div data-day="${esc(day.date)}" data-lat="${day.lat ?? ''}" data-lng="${day.lng ?? ''}"
          data-day-index="${dayIndex}" data-seg-id="${esc(segId)}"
-         class="day-card${isTransport ? ' is-transport' : ''}">
+         class="day-card${isTransport ? ' is-transport' : ''}${isToday ? ' is-today' : ''}">
       <div class="day-icon day-icon-${esc(day.type || 'sightseeing')}">${icon}</div>
       <div class="day-body">
-        <div class="day-date">${esc(formatDate(day.date))}</div>
+        <div class="day-date">${esc(formatDate(day.date))}${isToday ? '<span class="today-badge">今</span>' : ''}</div>
         <div class="day-title">${esc(day.title || '')}</div>
         ${transportHtml}
         ${day.note ? `<div class="day-note">${esc(day.note)}</div>` : ''}
@@ -270,7 +284,7 @@ export function renderBudget(trip) {
         <div id="expense-form-wrap"></div>
         ${expenses.length === 0
           ? '<div style="text-align:center;color:var(--c-muted-lt);font-size:13px;padding:16px 0">尚無花費記錄</div>'
-          : `<div id="expense-list">${expenses.map(e => renderExpenseRow(e, currency)).join('')}</div>`
+          : `<div id="expense-list">${renderExpensesBySegment(expenses, trip, currency)}</div>`
         }
       </div>
     </div>
@@ -304,6 +318,32 @@ function renderExpenseRow(e, fallbackCurrency) {
       <button class="expense-edit-btn" data-expense-id="${esc(e.id)}" data-edit title="編輯">${ICON_EDIT_SM}</button>
       <button class="expense-del-btn" data-expense-id="${esc(e.id)}" data-edit title="刪除">×</button>
     </div>`;
+}
+
+function renderExpensesBySegment(expenses, trip, currency) {
+  const segs = trip.segments || [];
+  const expBySegId = {};
+  expenses.forEach(e => { (expBySegId[e.segment_id || '__none__'] ??= []).push(e); });
+
+  const groups = [
+    ...segs.filter(s => expBySegId[s.id]?.length).map(s => ({ id: s.id, name: s.name, color: s.color || '#64748b' })),
+    ...(expBySegId['__none__']?.length ? [{ id: '__none__', name: '未指定分段', color: '#94a3b8' }] : []),
+  ];
+
+  if (groups.length <= 1) return expenses.map(e => renderExpenseRow(e, currency)).join('');
+
+  return groups.map(g => {
+    const items = expBySegId[g.id];
+    const subtotal = items.reduce((s, e) => s + (e.amount || 0), 0);
+    return `
+      <div class="expense-seg-group">
+        <div class="expense-seg-header">
+          <span class="expense-seg-name" style="border-left:2px solid ${esc(g.color)};padding-left:6px">${esc(g.name)}</span>
+          <span class="expense-seg-subtotal">${esc(formatCurrency(subtotal, currency))}</span>
+        </div>
+        ${items.map(e => renderExpenseRow(e, currency)).join('')}
+      </div>`;
+  }).join('');
 }
 
 export function renderExpenseForm(trip, exp = null) {

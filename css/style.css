@@ -194,6 +194,9 @@ button, input, select {
 .day-card.is-transport { background: var(--c-surface); }
 .day-card.is-transport:hover { background: #f1f5f9; }
 .day-card.is-selected { outline: 2px solid var(--c-primary); outline-offset: -2px; }
+.day-card.is-today { background: rgba(249,115,22,.04); box-shadow: inset 3px 0 0 var(--c-accent); }
+.day-card.is-today:hover { background: rgba(249,115,22,.08); }
+.today-badge { display: inline-flex; align-items: center; background: var(--c-accent); color: #fff; font-size: 9px; font-weight: 700; border-radius: 4px; padding: 1px 5px; margin-left: 5px; letter-spacing: .3px; vertical-align: middle; }
 
 .day-icon {
   flex-shrink: 0;
@@ -373,6 +376,10 @@ button, input, select {
 }
 .expense-row:hover .expense-edit-btn { opacity: 1; }
 .expense-edit-btn:hover { color: var(--c-accent); }
+.expense-seg-group { margin-top: 10px; }
+.expense-seg-header { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--c-border); margin-bottom: 2px; }
+.expense-seg-name { font-size: 11px; font-weight: 600; color: var(--c-text-2); }
+.expense-seg-subtotal { font-size: 11px; color: var(--c-muted); font-weight: 500; }
 .idea-item {
   display: flex; align-items: flex-start; gap: 8px;
   padding: 8px 0; border-bottom: 1px solid var(--c-border);
