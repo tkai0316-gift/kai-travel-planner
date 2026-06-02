@@ -52,9 +52,9 @@
 
     <form id="auth-otp-form" style="display:none">
       <p style="font-size:13px;color:#475569;margin-bottom:12px">驗證碼已傳送至 <span id="auth-email-display" style="font-weight:600;color:#1e293b"></span></p>
-      <label style="display:block;font-size:13px;font-weight:500;color:#475569;margin-bottom:6px">6 位數驗證碼</label>
-      <input id="auth-otp-input" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code"
-        placeholder="000000"
+      <label style="display:block;font-size:13px;font-weight:500;color:#475569;margin-bottom:6px">8 位數驗證碼</label>
+      <input id="auth-otp-input" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="one-time-code"
+        placeholder="00000000"
         style="width:100%;padding:12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:20px;text-align:center;letter-spacing:.3em;outline:none;margin-bottom:12px;transition:border-color .2s"
         onfocus="this.style.borderColor='#38bdf8'" onblur="this.style.borderColor='#e2e8f0'">
       <button type="submit"
