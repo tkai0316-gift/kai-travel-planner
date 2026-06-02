@@ -3,7 +3,7 @@ main = "worker.js"
 compatibility_date = "2024-01-01"
 
 kv_namespaces = [
-  { binding = "KV", id = "REPLACE_WITH_KV_NAMESPACE_ID" }
+  { binding = "KV", id = "7da3bd3278524a9aa11f7045d7680d6e" }
 ]
 
 [vars]

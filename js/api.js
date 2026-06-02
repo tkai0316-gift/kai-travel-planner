@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = 'https://cbdqlyprejzvndvesfpa.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YVutBvxGMw_PC37YURYsKA_AXn32IKZ';
+const WORKER_URL = 'https://kai-travel-share.t-kai90316.workers.dev';
 
 export const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -59,7 +60,7 @@ export async function savePreferences(userId, prefData) {
 }
 
 export async function createShare(tripData, prefData) {
-  const res = await fetch('/api/share', {
+  const res = await fetch(`${WORKER_URL}/api/share`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ trip_data: tripData, pref_data: prefData }),
@@ -69,7 +70,7 @@ export async function createShare(tripData, prefData) {
 }
 
 export async function fetchShare(shareId) {
-  const res = await fetch(`/api/share/${shareId}`);
+  const res = await fetch(`${WORKER_URL}/api/share/${shareId}`);
   if (!res.ok) throw new Error('分享連結已失效或不存在');
   return res.json();
 }
