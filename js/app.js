@@ -756,6 +756,7 @@ async function saveTripFromModal(existingId) {
   const status   = document.getElementById('tm-status')?.value || 'planning';
   const budget   = parseFloat(document.getElementById('tm-budget')?.value) || 0;
   const currency = (document.getElementById('tm-currency')?.value.trim() || 'TWD').toUpperCase();
+  const notes    = document.getElementById('tm-notes')?.value.trim() || '';
 
   if (!title)        { showToast('請填寫行程名稱', 'warn'); return; }
   if (!start || !end){ showToast('請填寫起訖日期', 'warn'); return; }
@@ -774,6 +775,7 @@ async function saveTripFromModal(existingId) {
     status,
     budget_total:  budget,
     base_currency: currency,
+    notes,
     segments:      existing?.segments  || [],
     todo:          existing?.todo      || [],
     packing:       existing?.packing   || [],

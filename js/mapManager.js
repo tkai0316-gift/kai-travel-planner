@@ -1,3 +1,4 @@
+import { esc } from './utils.js';
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 const TYPE_COLORS = {
   sightseeing: '#f59e0b', transport: '#94a3b8', trekking: '#22c55e', diving: '#3b82f6', rest: '#a855f7',
@@ -62,9 +63,15 @@ export function renderTrip(trip) {
         el.textContent = TYPE_EMOJI[day.type] || '📍';
         el.addEventListener('click', () => { if (markerClickCb) markerClickCb(day.date, seg.id); });
 
+        const popup = new maplibregl.Popup({ offset: 20, maxWidth: '200px' }).setHTML(`
+          <div style="font-size:12px;line-height:1.5">
+            <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">${esc(day.date || '')}</div>
+            <div style="font-weight:600;color:#0f172a">${TYPE_EMOJI[day.type] || '📍'} ${esc(day.title || '')}</div>
+            ${day.note ? `<div style="margin-top:4px;color:#475569;font-size:11px">${esc(day.note)}</div>` : ''}
+          </div>`);
         const marker = new maplibregl.Marker({ element: el })
           .setLngLat([day.lng, day.lat])
-          .setPopup(new maplibregl.Popup({ offset: 20 }).setText(day.title || day.date))
+          .setPopup(popup)
           .addTo(map);
         markers.push(marker);
         segPoints.push([day.lng, day.lat]);

@@ -61,6 +61,24 @@ export function renderTimeline(trip) {
   }
 
   const badgeClass = STATUS_BADGE[trip.status] || 'badge-planning';
+  const today = new Date().toISOString().slice(0, 10);
+  const totalDays  = (trip.segments || []).reduce((n, s) => n + (s.daily || []).length, 0);
+  const totalDests = (trip.segments || []).flatMap(s => s.daily || []).filter(d => d.lat != null).length;
+  const packing = trip.packing || [];
+  const packedCount = packing.filter(p => p.done).length;
+  const allPacked = packing.length > 0 && packedCount === packing.length;
+  let daysChip = '';
+  if (trip.end_date) {
+    const diff = Math.ceil((new Date(trip.end_date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+    if (diff === 0) daysChip = `<span class="trip-stat-chip accent">今天出發</span>`;
+    else if (diff > 0 && diff <= 90) daysChip = `<span class="trip-stat-chip">還有 ${diff} 天</span>`;
+  }
+  const statsHtml = `<div class="trip-stats">
+    ${totalDays ? `<span class="trip-stat-chip">${totalDays} 天行程</span>` : ''}
+    ${totalDests ? `<span class="trip-stat-chip">${totalDests} 個地點</span>` : ''}
+    ${packing.length ? `<span class="trip-stat-chip${allPacked ? ' accent' : ''}">打包 ${packedCount}/${packing.length}</span>` : ''}
+    ${daysChip}
+  </div>`;
   el.innerHTML = `
     <div style="padding:8px var(--pp);display:flex;gap:6px;border-bottom:1px solid var(--c-border)">
       <button class="btn btn-primary btn-sm" id="add-trip-btn" data-edit style="flex:1">＋ 新增行程</button>
@@ -73,6 +91,8 @@ export function renderTimeline(trip) {
         <button class="btn btn-icon btn-sm" id="trip-edit-btn" data-edit title="編輯行程" style="margin-left:auto">${ICON_EDIT}</button>
       </div>
       <div class="trip-dates">${esc(formatDateShort(trip.start_date))} – ${esc(formatDateShort(trip.end_date))}</div>
+      ${statsHtml}
+      ${trip.notes ? `<div class="trip-notes">${esc(trip.notes)}</div>` : ''}
     </div>
     <div id="segments-container">${(trip.segments || []).map(seg => renderSegment(seg)).join('')}</div>
     ${renderTodoPacking(trip)}
@@ -218,7 +238,7 @@ export function renderBudget(trip) {
   if (!el) return;
   if (!trip) { el.innerHTML = '<div class="empty-state">請先選擇行程</div>'; return; }
 
-  const expenses = trip.expenses || [];
+  const expenses = [...(trip.expenses || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const total    = expenses.reduce((s, e) => s + (e.amount || 0), 0);
   const budget   = trip.budget_total || 0;
   const currency = trip.base_currency || 'TWD';
@@ -493,6 +513,10 @@ export function renderTripModal(trip) {
         <label class="form-label">幣別</label>
         <input class="form-input" id="tm-currency" maxlength="5" value="${esc(t.base_currency || 'TWD')}">
       </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">備註</label>
+      <textarea class="form-input" id="tm-notes" rows="2" maxlength="500" placeholder="旅遊備忘、注意事項..." style="resize:vertical">${esc(t.notes || '')}</textarea>
     </div>
   `;
   document.getElementById('trip-modal-footer').innerHTML = `
