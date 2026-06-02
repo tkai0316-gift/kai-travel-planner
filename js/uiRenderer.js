@@ -5,6 +5,8 @@ import {
 
 const STATUS_LABELS = { planning: '規劃中', ongoing: '進行中', completed: '已完成' };
 const STATUS_BADGE  = { planning: 'badge-planning', ongoing: 'badge-ongoing', completed: 'badge-completed' };
+const SEG_COLORS    = ['#0EA5E9','#8B5CF6','#22C55E','#F97316','#EF4444','#F59E0B','#EC4899','#64748B'];
+const ICON_EDIT     = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`;
 
 /* ── Online / Offline ── */
 export function setOnlineState(isOnline) {
@@ -44,17 +46,27 @@ export function renderTripSelector(trips, activeTripId) {
 export function renderTimeline(trip) {
   const el = document.getElementById('timeline-content');
   if (!el) return;
+
   if (!trip) {
-    el.innerHTML = '<div class="empty-state">尚無行程資料<br><small>前往「資料」匯入 JSON</small></div>';
+    el.innerHTML = `
+      <div style="padding:8px var(--pp);border-bottom:1px solid var(--c-border)">
+        <button class="btn btn-primary btn-sm btn-full" id="add-trip-btn" data-edit>＋ 新增行程</button>
+      </div>
+      <div class="empty-state">尚無行程資料<br><small>點擊上方按鈕新增</small></div>`;
     return;
   }
 
   const badgeClass = STATUS_BADGE[trip.status] || 'badge-planning';
   el.innerHTML = `
+    <div style="padding:8px var(--pp);display:flex;gap:6px;border-bottom:1px solid var(--c-border)">
+      <button class="btn btn-primary btn-sm" id="add-trip-btn" data-edit style="flex:1">＋ 新增行程</button>
+      <button class="btn btn-secondary btn-sm" id="add-seg-btn" data-edit style="flex:1">＋ 新增分段</button>
+    </div>
     <div class="trip-header">
       <div class="trip-header-row">
         <span class="trip-title">${esc(trip.title)}</span>
         <span class="badge ${badgeClass}">${STATUS_LABELS[trip.status] || ''}</span>
+        <button class="btn btn-icon btn-sm" id="trip-edit-btn" data-edit title="編輯行程" style="margin-left:auto">${ICON_EDIT}</button>
       </div>
       <div class="trip-dates">${esc(formatDateShort(trip.start_date))} – ${esc(formatDateShort(trip.end_date))}</div>
     </div>
@@ -63,7 +75,8 @@ export function renderTimeline(trip) {
   `;
 
   el.querySelectorAll('.seg-header').forEach(hdr => {
-    hdr.addEventListener('click', () => {
+    hdr.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
       const body  = hdr.nextElementSibling;
       const arrow = hdr.querySelector('.seg-arrow');
       if (!body) return;
@@ -97,6 +110,7 @@ function renderSegment(seg) {
           <div class="seg-dates-sm">${esc(formatDateShort(seg.start_date))} – ${esc(formatDateShort(seg.end_date))} · ${days.length} 天</div>
         </div>
         <div class="seg-dot" style="background:${color}"></div>
+        <button class="btn btn-icon btn-sm seg-edit-btn" data-seg-id="${esc(seg.id)}" data-edit title="編輯分段">${ICON_EDIT}</button>
       </div>
       <div class="seg-body">${days.map(day => renderDayCard(day)).join('')}</div>
     </div>
@@ -395,6 +409,89 @@ export function renderDataPanel() {
       </div>
     </div>
   `;
+}
+
+/* ── Trip Modal ── */
+export function renderTripModal(trip) {
+  const isEdit = !!trip;
+  const t = trip || { title: '', start_date: '', end_date: '', status: 'planning', budget_total: '', base_currency: 'TWD' };
+  document.getElementById('trip-modal-title').textContent = isEdit ? '編輯行程' : '新增行程';
+  document.getElementById('trip-modal-body').innerHTML = `
+    <div class="form-row">
+      <label class="form-label">行程名稱</label>
+      <input class="form-input" id="tm-title" maxlength="80" value="${esc(t.title)}" placeholder="例：東京春旅">
+    </div>
+    <div class="form-2col">
+      <div class="form-row">
+        <label class="form-label">開始日期</label>
+        <input type="date" class="form-input" id="tm-start" value="${esc(t.start_date || '')}">
+      </div>
+      <div class="form-row">
+        <label class="form-label">結束日期</label>
+        <input type="date" class="form-input" id="tm-end" value="${esc(t.end_date || '')}">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">狀態</label>
+      <select class="form-input" id="tm-status">
+        <option value="planning"${t.status === 'planning' ? ' selected' : ''}>規劃中</option>
+        <option value="ongoing"${t.status === 'ongoing' ? ' selected' : ''}>進行中</option>
+        <option value="completed"${t.status === 'completed' ? ' selected' : ''}>已完成</option>
+      </select>
+    </div>
+    <div class="form-2col">
+      <div class="form-row">
+        <label class="form-label">總預算</label>
+        <input type="number" class="form-input" id="tm-budget" min="0" value="${esc(String(t.budget_total || ''))}">
+      </div>
+      <div class="form-row">
+        <label class="form-label">幣別</label>
+        <input class="form-input" id="tm-currency" maxlength="5" value="${esc(t.base_currency || 'TWD')}">
+      </div>
+    </div>
+  `;
+  document.getElementById('trip-modal-footer').innerHTML = `
+    ${isEdit ? `<button class="btn btn-danger btn-sm" id="tm-delete" style="margin-right:auto">刪除行程</button>` : ''}
+    <button class="btn btn-secondary" id="tm-cancel">取消</button>
+    <button class="btn btn-primary" id="tm-save">儲存</button>
+  `;
+  document.getElementById('trip-modal').classList.add('open');
+}
+
+/* ── Segment Modal ── */
+export function renderSegModal(seg) {
+  const isEdit = !!seg;
+  const s = seg || { name: '', start_date: '', end_date: '', color: SEG_COLORS[0] };
+  const selectedColor = s.color || SEG_COLORS[0];
+  document.getElementById('seg-modal-title').textContent = isEdit ? '編輯分段' : '新增分段';
+  document.getElementById('seg-modal-body').innerHTML = `
+    <div class="form-row">
+      <label class="form-label">分段名稱</label>
+      <input class="form-input" id="sm-name" maxlength="60" value="${esc(s.name)}" placeholder="例：東京">
+    </div>
+    <div class="form-2col">
+      <div class="form-row">
+        <label class="form-label">開始日期</label>
+        <input type="date" class="form-input" id="sm-start" value="${esc(s.start_date || '')}">
+      </div>
+      <div class="form-row">
+        <label class="form-label">結束日期</label>
+        <input type="date" class="form-input" id="sm-end" value="${esc(s.end_date || '')}">
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">顏色</label>
+      <div class="color-swatch-row" id="sm-colors">
+        ${SEG_COLORS.map(c => `<div class="color-swatch${c === selectedColor ? ' selected' : ''}" data-color="${esc(c)}" style="background:${esc(c)}"></div>`).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('seg-modal-footer').innerHTML = `
+    ${isEdit ? `<button class="btn btn-danger btn-sm" id="sm-delete" style="margin-right:auto">刪除分段</button>` : ''}
+    <button class="btn btn-secondary" id="sm-cancel">取消</button>
+    <button class="btn btn-primary" id="sm-save">儲存</button>
+  `;
+  document.getElementById('seg-modal').classList.add('open');
 }
 
 /* ── Auth ── */

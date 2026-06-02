@@ -112,6 +112,30 @@
     navigator.serviceWorker.register('/sw.js').catch(console.warn);
   }
 </script>
+<!-- Trip Modal -->
+<div class="modal-overlay" id="trip-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title" id="trip-modal-title">新增行程</span>
+      <button class="modal-close" id="trip-modal-close" aria-label="關閉">×</button>
+    </div>
+    <div class="modal-body" id="trip-modal-body"></div>
+    <div class="modal-footer" id="trip-modal-footer"></div>
+  </div>
+</div>
+
+<!-- Segment Modal -->
+<div class="modal-overlay" id="seg-modal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span class="modal-title" id="seg-modal-title">新增分段</span>
+      <button class="modal-close" id="seg-modal-close" aria-label="關閉">×</button>
+    </div>
+    <div class="modal-body" id="seg-modal-body"></div>
+    <div class="modal-footer" id="seg-modal-footer"></div>
+  </div>
+</div>
+
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

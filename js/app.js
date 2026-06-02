@@ -138,6 +138,25 @@ function bindAppEvents() {
       bindPrefsEditEvents(preferences);
     }
   });
+
+  document.getElementById('timeline-content')?.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const { trips, activeTripId } = getState();
+    const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+    const activeTrip = allTrips.find(t => t.id === activeTripId) || null;
+
+    if (btn.id === 'add-trip-btn') {
+      openTripModal(null);
+    } else if (btn.id === 'trip-edit-btn') {
+      if (activeTrip) openTripModal(activeTrip);
+    } else if (btn.id === 'add-seg-btn') {
+      openSegModal(null, activeTripId);
+    } else if (btn.classList.contains('seg-edit-btn')) {
+      const seg = activeTrip?.segments?.find(s => s.id === btn.dataset.segId);
+      if (seg) openSegModal(seg, activeTripId);
+    }
+  });
 }
 
 /* ── Checklist (Todo / Packing) ── */
@@ -307,24 +326,36 @@ async function togglePacking(trip, id) {
 
 async function persistTrip(trip) {
   const { trips, user, isOnline } = getState();
+  if (!isOnline) { showToast('離線中，無法儲存', 'warn'); return false; }
 
-  if (!isOnline) {
-    showToast('離線中，無法儲存', 'warn');
-    return false;
+  if (!trips.current_trips) trips.current_trips = [];
+  const idx = trips.current_trips.findIndex(t => t.id === trip.id);
+  if (idx !== -1) {
+    trips.current_trips[idx] = trip;
+  } else {
+    const pastIdx = (trips.past_trips || []).findIndex(t => t.id === trip.id);
+    if (pastIdx !== -1) trips.past_trips[pastIdx] = trip;
+    else trips.current_trips.unshift(trip);
   }
-
-  const idx = (trips.current_trips || []).findIndex(t => t.id === trip.id);
-  if (idx !== -1) trips.current_trips[idx] = trip;
 
   if (user) {
-    try {
-      await api.saveTrips(user.id, trips);
-    } catch {
-      showToast('儲存失敗，請重試', 'error');
-      return false;
-    }
+    try { await api.saveTrips(user.id, trips); }
+    catch { showToast('儲存失敗，請重試', 'error'); return false; }
   }
+  setState({ trips });
+  saveCache(trips, getState().preferences);
+  return true;
+}
 
+async function deleteTrip(tripId) {
+  const { trips, user, isOnline } = getState();
+  if (!isOnline) { showToast('離線中，無法刪除', 'warn'); return false; }
+  trips.current_trips = (trips.current_trips || []).filter(t => t.id !== tripId);
+  trips.past_trips    = (trips.past_trips    || []).filter(t => t.id !== tripId);
+  if (user) {
+    try { await api.saveTrips(user.id, trips); }
+    catch { showToast('刪除失敗，請重試', 'error'); return false; }
+  }
   setState({ trips });
   saveCache(trips, getState().preferences);
   return true;
@@ -519,6 +550,164 @@ function bindAuthEvents() {
       ui.showAuthError(err.message || 'OTP 驗證失敗');
     } finally { if (btn) btn.disabled = false; }
   });
+}
+
+/* ── Trip Modal ── */
+function openTripModal(trip) {
+  ui.renderTripModal(trip);
+  const tripId = trip?.id || null;
+
+  const overlay = document.getElementById('trip-modal');
+  overlay.onclick = e => { if (e.target === overlay) closeTripModal(); };
+  document.getElementById('trip-modal-close').onclick = closeTripModal;
+  document.getElementById('tm-cancel').onclick = closeTripModal;
+  document.getElementById('tm-save').onclick = () => saveTripFromModal(tripId);
+
+  const delBtn = document.getElementById('tm-delete');
+  if (delBtn) delBtn.onclick = () => {
+    if (confirm('確定要刪除這個行程？此動作無法復原。')) {
+      closeTripModal();
+      handleDeleteTrip(tripId);
+    }
+  };
+}
+
+function closeTripModal() {
+  document.getElementById('trip-modal')?.classList.remove('open');
+}
+
+async function saveTripFromModal(existingId) {
+  const title    = document.getElementById('tm-title')?.value.trim();
+  const start    = document.getElementById('tm-start')?.value;
+  const end      = document.getElementById('tm-end')?.value;
+  const status   = document.getElementById('tm-status')?.value || 'planning';
+  const budget   = parseFloat(document.getElementById('tm-budget')?.value) || 0;
+  const currency = (document.getElementById('tm-currency')?.value.trim() || 'TWD').toUpperCase();
+
+  if (!title)        { showToast('請填寫行程名稱', 'warn'); return; }
+  if (!start || !end){ showToast('請填寫起訖日期', 'warn'); return; }
+  if (start > end)   { showToast('開始日期不能晚於結束日期', 'warn'); return; }
+
+  const { trips } = getState();
+  const allTrips  = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  const existing  = allTrips.find(t => t.id === existingId);
+
+  const updated = {
+    ...(existing || {}),
+    id:            existingId || generateId(),
+    title,
+    start_date:    start,
+    end_date:      end,
+    status,
+    budget_total:  budget,
+    base_currency: currency,
+    segments:      existing?.segments  || [],
+    todo:          existing?.todo      || [],
+    packing:       existing?.packing   || [],
+    expenses:      existing?.expenses  || [],
+  };
+
+  const ok = await persistTrip(updated);
+  if (!ok) return;
+
+  closeTripModal();
+  if (!existingId) setState({ activeTripId: updated.id });
+  ui.renderTripSelector(getState().trips, getState().activeTripId);
+  renderActiveTrip();
+  showToast(existingId ? '行程已更新' : '行程已新增', 'success');
+}
+
+async function handleDeleteTrip(tripId) {
+  const ok = await deleteTrip(tripId);
+  if (!ok) return;
+  const { trips } = getState();
+  const allTrips  = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  setState({ activeTripId: allTrips[0]?.id || null });
+  ui.renderTripSelector(trips, getState().activeTripId);
+  renderActiveTrip();
+  showToast('行程已刪除', 'success');
+}
+
+/* ── Segment Modal ── */
+function openSegModal(seg, tripId) {
+  ui.renderSegModal(seg);
+  const segId = seg?.id || null;
+
+  const overlay = document.getElementById('seg-modal');
+  overlay.onclick = e => { if (e.target === overlay) closeSegModal(); };
+  document.getElementById('seg-modal-close').onclick = closeSegModal;
+  document.getElementById('sm-cancel').onclick = closeSegModal;
+  document.getElementById('sm-save').onclick = () => saveSegFromModal(segId, tripId);
+
+  document.getElementById('sm-colors').onclick = e => {
+    const swatch = e.target.closest('.color-swatch');
+    if (!swatch) return;
+    document.querySelectorAll('#sm-colors .color-swatch').forEach(s => s.classList.remove('selected'));
+    swatch.classList.add('selected');
+  };
+
+  const delBtn = document.getElementById('sm-delete');
+  if (delBtn) delBtn.onclick = () => {
+    if (confirm('確定要刪除此分段？其中的每日行程也會一併移除。')) {
+      closeSegModal();
+      handleDeleteSeg(segId, tripId);
+    }
+  };
+}
+
+function closeSegModal() {
+  document.getElementById('seg-modal')?.classList.remove('open');
+}
+
+async function saveSegFromModal(existingId, tripId) {
+  const name  = document.getElementById('sm-name')?.value.trim();
+  const start = document.getElementById('sm-start')?.value;
+  const end   = document.getElementById('sm-end')?.value;
+  const color = document.querySelector('#sm-colors .color-swatch.selected')?.dataset.color || '#0EA5E9';
+
+  if (!name)         { showToast('請填寫分段名稱', 'warn'); return; }
+  if (!start || !end){ showToast('請填寫起訖日期', 'warn'); return; }
+  if (start > end)   { showToast('開始日期不能晚於結束日期', 'warn'); return; }
+
+  const { trips } = getState();
+  const allTrips  = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  const trip      = allTrips.find(t => t.id === tripId);
+  if (!trip) return;
+
+  const segments = [...(trip.segments || [])];
+  const idx      = segments.findIndex(s => s.id === existingId);
+  const segData  = {
+    ...(idx !== -1 ? segments[idx] : {}),
+    id:         existingId || generateId(),
+    name,
+    start_date: start,
+    end_date:   end,
+    color,
+    daily:      idx !== -1 ? segments[idx].daily : [],
+  };
+
+  if (idx !== -1) segments[idx] = segData;
+  else segments.push(segData);
+
+  trip.segments = segments;
+  const ok = await persistTrip(trip);
+  if (!ok) return;
+
+  closeSegModal();
+  renderActiveTrip();
+  showToast(existingId ? '分段已更新' : '分段已新增', 'success');
+}
+
+async function handleDeleteSeg(segId, tripId) {
+  const { trips } = getState();
+  const allTrips  = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  const trip      = allTrips.find(t => t.id === tripId);
+  if (!trip) return;
+  trip.segments = (trip.segments || []).filter(s => s.id !== segId);
+  const ok = await persistTrip(trip);
+  if (!ok) return;
+  renderActiveTrip();
+  showToast('分段已刪除', 'success');
 }
 
 init().catch(console.error);
