@@ -11,6 +11,8 @@ function getActiveTrip() {
 }
 
 let pendingEmail = '';
+let _todoComposing = false;
+let _packComposing = false;
 
 async function init() {
   const IS_DEV_BYPASS =
@@ -135,6 +137,7 @@ function bindAppEvents() {
       if (!li) return;
       tripSelList.style.display = 'none';
       setState({ activeTripId: li.dataset.tripId });
+      ui.renderTripSelector(getState().trips, li.dataset.tripId);
       renderActiveTrip();
     });
     document.addEventListener('click', () => { tripSelList.style.display = 'none'; });
@@ -392,9 +395,14 @@ function bindChecklistEvents(trip) {
     });
   });
 
-  document.getElementById('todo-add-input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.isComposing) document.getElementById('todo-add-btn')?.click();
-  });
+  const todoInput = document.getElementById('todo-add-input');
+  if (todoInput) {
+    todoInput.addEventListener('compositionstart', () => { _todoComposing = true; });
+    todoInput.addEventListener('compositionend', () => { setTimeout(() => { _todoComposing = false; }, 0); });
+    todoInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !_todoComposing && !e.isComposing) document.getElementById('todo-add-btn')?.click();
+    });
+  }
 
   document.getElementById('packing-add-btn')?.addEventListener('click', () => {
     const nameInput = document.getElementById('packing-add-input');
@@ -409,9 +417,14 @@ function bindChecklistEvents(trip) {
     });
   });
 
-  document.getElementById('packing-add-input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.isComposing) document.getElementById('packing-add-btn')?.click();
-  });
+  const packInput = document.getElementById('packing-add-input');
+  if (packInput) {
+    packInput.addEventListener('compositionstart', () => { _packComposing = true; });
+    packInput.addEventListener('compositionend', () => { setTimeout(() => { _packComposing = false; }, 0); });
+    packInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !_packComposing && !e.isComposing) document.getElementById('packing-add-btn')?.click();
+    });
+  }
 }
 
 async function toggleTodo(trip, id) {
