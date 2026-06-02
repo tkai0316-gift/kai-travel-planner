@@ -13,6 +13,7 @@ function getActiveTrip() {
 let pendingEmail = '';
 let _todoComposing = false;
 let _packComposing = false;
+let _ideaComposing = false;
 
 async function init() {
   const IS_DEV_BYPASS =
@@ -102,7 +103,7 @@ function renderActiveTrip() {
   ui.renderTimeline(trip);
   ui.renderBudget(trip);
   ui.renderPrefs(preferences);
-  ui.renderDataPanel();
+  ui.renderDataPanel(trips);
   bindChecklistEvents(trip);
   bindDataPanelEvents();
 
@@ -170,8 +171,14 @@ function bindAppEvents() {
     const trip = getActiveTrip();
     if (!trip) return;
     if (e.target.id === 'add-expense-btn' || e.target.closest('#add-expense-btn')) {
-      ui.renderExpenseForm(trip);
-      bindExpenseFormEvents(trip);
+      ui.renderExpenseForm(trip, null);
+      bindExpenseFormEvents(trip, null);
+      return;
+    }
+    const editBtn = e.target.closest('.expense-edit-btn');
+    if (editBtn) {
+      const exp = (trip.expenses || []).find(ex => ex.id === editBtn.dataset.expenseId);
+      if (exp) { ui.renderExpenseForm(trip, exp); bindExpenseFormEvents(trip, exp); }
       return;
     }
     const delBtn = e.target.closest('.expense-del-btn');
@@ -180,6 +187,21 @@ function bindAppEvents() {
       trip.expenses = (trip.expenses || []).filter(ex => ex.id !== expId);
       persistTrip(trip).then(ok => { if (ok) ui.renderBudget(trip); });
     }
+  });
+
+  /* ── Data panel delegation (bound once) ── */
+  document.getElementById('data-content')?.addEventListener('click', async e => {
+    const delBtn = e.target.closest('[data-idea-del]');
+    if (!delBtn) return;
+    const { trips, user, isOnline } = getState();
+    if (!isOnline) { showToast('離線中，無法刪除', 'warn'); return; }
+    const ideaId = delBtn.dataset.ideaDel;
+    trips.trip_ideas = (trips.trip_ideas || []).filter(i => i.id !== ideaId);
+    setState({ trips });
+    if (user) { try { await api.saveTrips(user.id, trips); } catch { showToast('刪除失敗', 'error'); return; } }
+    saveCache(trips, getState().preferences);
+    ui.renderDataPanel(trips);
+    bindDataPanelEvents();
   });
 
   document.getElementById('panel-prefs')?.addEventListener('click', e => {
@@ -212,6 +234,13 @@ function bindAppEvents() {
       const day = seg?.daily?.[parseInt(btn.dataset.dayIndex, 10)];
       if (day) openDayModal(day, btn.dataset.segId, activeTripId, parseInt(btn.dataset.dayIndex, 10));
     }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    ['trip-modal', 'seg-modal', 'day-modal'].forEach(id => {
+      document.getElementById(id)?.classList.remove('open');
+    });
   });
 }
 
@@ -550,9 +579,36 @@ function bindDataPanelEvents() {
     finally { shareBtn.disabled = false; shareBtn.textContent = '建立唯讀分享連結（TTL 30天）'; }
   });
 
+  /* ── Trip Ideas ── */
+  const ideaAddBtn = document.getElementById('idea-add-btn');
+  const ideaInput  = document.getElementById('idea-add-input');
+  if (ideaAddBtn) ideaAddBtn.addEventListener('click', async () => {
+    const title = ideaInput?.value.trim();
+    if (!title) return;
+    const { trips, user, isOnline } = getState();
+    if (!isOnline) { showToast('離線中，無法新增', 'warn'); return; }
+    const newIdea = { id: generateId('idea'), title, notes: '' };
+    trips.trip_ideas = [...(trips.trip_ideas || []), newIdea];
+    setState({ trips });
+    if (user) {
+      try { await api.saveTrips(user.id, trips); }
+      catch { showToast('儲存失敗', 'error'); trips.trip_ideas = trips.trip_ideas.filter(i => i.id !== newIdea.id); setState({ trips }); return; }
+    }
+    saveCache(trips, getState().preferences);
+    if (ideaInput) ideaInput.value = '';
+    ui.renderDataPanel(trips);
+    bindDataPanelEvents();
+  });
+  if (ideaInput) {
+    ideaInput.addEventListener('compositionstart', () => { _ideaComposing = true; });
+    ideaInput.addEventListener('compositionend', () => { setTimeout(() => { _ideaComposing = false; }, 0); });
+    ideaInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !_ideaComposing && !e.isComposing) ideaAddBtn?.click();
+    });
+  }
 }
 
-function bindExpenseFormEvents(trip) {
+function bindExpenseFormEvents(trip, existingExp = null) {
   const saveBtn   = document.getElementById('ef-save');
   const cancelBtn = document.getElementById('ef-cancel');
   if (cancelBtn) cancelBtn.addEventListener('click', () => {
@@ -569,13 +625,16 @@ function bindExpenseFormEvents(trip) {
     if (!date || !category || isNaN(amount) || amount <= 0) {
       showToast('請填寫日期、類別和金額', 'warn'); return;
     }
-    const newExp = { id: generateId('exp'), segment_id: segEl?.value || null, date, category, amount, currency, note: note || '' };
-    trip.expenses = [...(trip.expenses || []), newExp];
+    if (existingExp) {
+      const idx = (trip.expenses || []).findIndex(e => e.id === existingExp.id);
+      if (idx !== -1) trip.expenses[idx] = { ...trip.expenses[idx], date, category, amount, currency, segment_id: segEl?.value || null, note: note || '' };
+    } else {
+      trip.expenses = [...(trip.expenses || []), { id: generateId('exp'), segment_id: segEl?.value || null, date, category, amount, currency, note: note || '' }];
+    }
     const ok = await persistTrip(trip);
-    if (!ok) { trip.expenses = trip.expenses.slice(0, -1); return; }
-    showToast('花費已新增', 'success');
+    if (!ok) { if (!existingExp) trip.expenses = trip.expenses.slice(0, -1); return; }
+    showToast(existingExp ? '花費已更新' : '花費已新增', 'success');
     ui.renderBudget(trip);
-    bindDataPanelEvents();
   });
 }
 

@@ -273,37 +273,40 @@ export function renderBudget(trip) {
   }
 }
 
+const ICON_EDIT_SM = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`;
+
 function renderExpenseRow(e, fallbackCurrency) {
   return `
     <div class="expense-row" data-expense-id="${esc(e.id)}">
       <span class="expense-date">${esc(e.date?.slice(5) || '')}</span>
       <span class="expense-note">${esc(e.note || e.category)}</span>
       <span class="expense-amount">${esc(formatCurrency(e.amount, e.currency || fallbackCurrency))}</span>
+      <button class="expense-edit-btn" data-expense-id="${esc(e.id)}" data-edit title="編輯">${ICON_EDIT_SM}</button>
       <button class="expense-del-btn" data-expense-id="${esc(e.id)}" data-edit title="刪除">×</button>
     </div>`;
 }
 
-export function renderExpenseForm(trip) {
+export function renderExpenseForm(trip, exp = null) {
   const wrap = document.getElementById('expense-form-wrap');
   if (!wrap) return;
-  const currency = trip?.base_currency || 'TWD';
+  const currency = exp?.currency || trip?.base_currency || 'TWD';
   const segments = trip?.segments || [];
   wrap.innerHTML = `
     <div class="expense-form" id="add-expense-form">
       <div class="expense-form-row">
-        <input type="date" id="ef-date" value="${new Date().toISOString().slice(0,10)}" placeholder="日期">
+        <input type="date" id="ef-date" value="${exp ? esc(exp.date || '') : new Date().toISOString().slice(0,10)}" placeholder="日期">
         <select id="ef-category">
-          ${['景點','餐飲','交通','住宿','購物','其他'].map(c => `<option>${c}</option>`).join('')}
+          ${['景點','餐飲','交通','住宿','購物','其他'].map(c => `<option${exp?.category === c ? ' selected' : ''}>${c}</option>`).join('')}
         </select>
       </div>
       <div class="expense-form-row">
-        <input type="number" id="ef-amount" placeholder="金額" min="0">
+        <input type="number" id="ef-amount" value="${exp ? exp.amount : ''}" placeholder="金額" min="0">
         <input type="text" id="ef-currency" value="${esc(currency)}" placeholder="幣別" style="width:70px;flex:none">
       </div>
-      ${segments.length ? `<select id="ef-segment"><option value="">（不指定分段）</option>${segments.map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')}</select>` : ''}
-      <input type="text" id="ef-note" placeholder="備註（選填）">
+      ${segments.length ? `<select id="ef-segment"><option value="">（不指定分段）</option>${segments.map(s => `<option value="${esc(s.id)}"${exp?.segment_id === s.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select>` : ''}
+      <input type="text" id="ef-note" value="${exp ? esc(exp.note || '') : ''}" placeholder="備註（選填）">
       <div class="expense-form-row">
-        <button id="ef-save" class="btn btn-primary" style="flex:1">儲存</button>
+        <button id="ef-save" class="btn btn-primary" style="flex:1">${exp ? '更新' : '儲存'}</button>
         <button id="ef-cancel" class="btn btn-ghost" style="flex:1">取消</button>
       </div>
     </div>
@@ -398,11 +401,28 @@ export function renderPrefsEdit(prefs) {
 }
 
 /* ── Data Panel ── */
-export function renderDataPanel() {
+export function renderDataPanel(trips = null) {
   const el = document.getElementById('data-content');
   if (!el) return;
+  const ideas = trips?.trip_ideas || [];
   el.innerHTML = `
     <div style="padding:var(--pp);display:flex;flex-direction:column;gap:20px">
+      <div>
+        <div class="section-lbl">旅遊構想</div>
+        ${ideas.map(i => `
+          <div class="idea-item" data-idea-id="${esc(i.id)}">
+            <div class="idea-item-body">
+              <div class="idea-item-title">${esc(i.title)}</div>
+              ${i.notes ? `<div class="idea-item-notes">${esc(i.notes)}</div>` : ''}
+            </div>
+            <button class="idea-del-btn" data-idea-del="${esc(i.id)}" data-edit title="刪除">×</button>
+          </div>`).join('')}
+        ${ideas.length === 0 ? '<div style="font-size:12px;color:var(--c-muted-lt);padding:4px 0 8px">尚無構想，輸入目的地後按新增</div>' : ''}
+        <div class="checklist-add-row" data-edit style="margin-top:4px">
+          <input type="text" id="idea-add-input" class="checklist-add-input" placeholder="新增旅遊目的地或構想">
+          <button class="btn btn-link btn-sm" id="idea-add-btn" data-edit>新增</button>
+        </div>
+      </div>
       <div>
         <div class="section-lbl">匯入資料</div>
         <div style="display:flex;flex-direction:column;gap:8px">
