@@ -371,7 +371,6 @@ button, input, select {
 .tag-rm { background: none; border: none; cursor: pointer; color: var(--c-muted); padding: 0 2px; font-size: 14px; line-height: 1; }
 .tag-rm:hover { color: var(--c-text); }
 .tag-input { border: none; outline: none; font-size: 11px; font-family: inherit; color: var(--c-text); background: transparent; min-width: 60px; flex: 1; }
-.tag-add-btn { background: none; border: 1px solid var(--c-border); border-radius: 4px; cursor: pointer; color: var(--c-primary); padding: 1px 7px; font-size: 14px; flex-shrink: 0; }
 
 /* ── Buttons ── */
 .btn {

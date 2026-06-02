@@ -161,11 +161,10 @@ function makeTagManager(wrapId, arr) {
     if (!wrap) return;
     wrap.innerHTML = arr.map((t, i) =>
       `<span class="tag-chip">${esc(t)}<button type="button" class="tag-rm" data-i="${i}">×</button></span>`
-    ).join('') + `<input class="tag-input" placeholder="新增…" maxlength="40"><button type="button" class="tag-add-btn">＋</button>`;
+    ).join('') + `<input class="tag-input" placeholder="輸入後按 Enter" maxlength="40">`;
     wrap.querySelectorAll('.tag-rm').forEach(btn =>
       btn.addEventListener('click', () => { arr.splice(+btn.dataset.i, 1); render(); })
     );
-    wrap.querySelector('.tag-add-btn')?.addEventListener('click', doAdd);
     wrap.querySelector('.tag-input')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); doAdd(); }
     });
@@ -203,23 +202,29 @@ function bindPrefsEditEvents(initPrefs) {
 
   document.getElementById('pe-bl-add')?.addEventListener('click', () => {
     const form = document.getElementById('pe-bl-form');
-    if (!form || form.style.display === 'flex') return;
-    form.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-top:8px';
+    if (!form || form.dataset.open === '1') return;
+    form.dataset.open = '1';
+    form.style.cssText = 'display:block;margin-top:4px';
     form.innerHTML = `
-      <input id="pe-bl-dest"  class="pref-input" placeholder="目的地" maxlength="80">
-      <input id="pe-bl-notes" class="pref-input" placeholder="備註（選填）" maxlength="200">
-      <div style="display:flex;gap:6px">
-        <button id="pe-bl-cx"  class="btn btn-ghost"   style="flex:1;font-size:12px">取消</button>
-        <button id="pe-bl-ok"  class="btn btn-primary" style="flex:1;font-size:12px">新增</button>
+      <div class="bucket-item" style="align-items:flex-start;gap:6px">
+        <span class="bucket-icon" style="margin-top:6px">${ICON_GLOBE}</span>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+          <input id="pe-bl-dest"  class="pref-input" placeholder="目的地" maxlength="80">
+          <input id="pe-bl-notes" class="pref-input" placeholder="備註（選填）" maxlength="200">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+          <button type="button" id="pe-bl-ok" class="btn btn-primary" style="padding:4px 14px;min-height:unset;font-size:11px">確認</button>
+          <button type="button" id="pe-bl-cx" class="btn btn-ghost"   style="padding:4px 14px;min-height:unset;font-size:11px">取消</button>
+        </div>
       </div>`;
     document.getElementById('pe-bl-cx')?.addEventListener('click', () => {
-      form.style.display = 'none'; form.innerHTML = '';
+      form.style.display = 'none'; form.innerHTML = ''; delete form.dataset.open;
     });
     document.getElementById('pe-bl-ok')?.addEventListener('click', () => {
       const dest = document.getElementById('pe-bl-dest')?.value.trim();
       if (!dest) { showToast('請填寫目的地', 'warn'); return; }
       bl.push({ destination: dest, notes: document.getElementById('pe-bl-notes')?.value.trim() || '' });
-      form.style.display = 'none'; form.innerHTML = '';
+      form.style.display = 'none'; form.innerHTML = ''; delete form.dataset.open;
       renderBl();
     });
   });
