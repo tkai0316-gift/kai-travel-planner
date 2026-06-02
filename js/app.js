@@ -372,7 +372,7 @@ function bindChecklistEvents(trip) {
   });
 
   document.getElementById('todo-add-input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('todo-add-btn')?.click();
+    if (e.key === 'Enter' && !e.isComposing) document.getElementById('todo-add-btn')?.click();
   });
 
   document.getElementById('packing-add-btn')?.addEventListener('click', () => {
@@ -389,7 +389,7 @@ function bindChecklistEvents(trip) {
   });
 
   document.getElementById('packing-add-input')?.addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('packing-add-btn')?.click();
+    if (e.key === 'Enter' && !e.isComposing) document.getElementById('packing-add-btn')?.click();
   });
 }
 
