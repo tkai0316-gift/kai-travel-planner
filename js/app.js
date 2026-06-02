@@ -149,22 +149,25 @@ function toArr(val) {
 }
 
 function makeTagManager(wrapId, arr) {
+  function doAdd() {
+    const input = document.querySelector(`#${wrapId} .tag-input`);
+    if (!input) return;
+    const v = input.value.trim();
+    if (v && !arr.includes(v)) { arr.push(v); render(); }
+    else if (input) input.value = '';
+  }
   function render() {
     const wrap = document.getElementById(wrapId);
     if (!wrap) return;
     wrap.innerHTML = arr.map((t, i) =>
-      `<span class="tag-chip">${esc(t)}<button class="tag-rm" data-i="${i}">×</button></span>`
-    ).join('') + `<input class="tag-input" placeholder="新增…" maxlength="40">`;
+      `<span class="tag-chip">${esc(t)}<button type="button" class="tag-rm" data-i="${i}">×</button></span>`
+    ).join('') + `<input class="tag-input" placeholder="新增…" maxlength="40"><button type="button" class="tag-add-btn">＋</button>`;
     wrap.querySelectorAll('.tag-rm').forEach(btn =>
       btn.addEventListener('click', () => { arr.splice(+btn.dataset.i, 1); render(); })
     );
-    const input = wrap.querySelector('.tag-input');
-    if (input) input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const v = input.value.trim();
-        if (v && !arr.includes(v)) { arr.push(v); render(); }
-      }
+    wrap.querySelector('.tag-add-btn')?.addEventListener('click', doAdd);
+    wrap.querySelector('.tag-input')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); doAdd(); }
     });
   }
   render();
