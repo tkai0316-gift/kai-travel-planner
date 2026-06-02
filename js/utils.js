@@ -67,6 +67,29 @@ export function generateId(prefix = 'id') {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
+export function openConfirm({ title = '確認', message, okLabel = '確認刪除', danger = true, onConfirm }) {
+  const modal = document.getElementById('confirm-modal');
+  if (!modal) { if (window.confirm(message)) onConfirm(); return; }
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-message').textContent = message;
+  const okBtn = document.getElementById('confirm-ok');
+  okBtn.textContent = okLabel;
+  okBtn.className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
+  modal.classList.add('open');
+  function close() { modal.classList.remove('open'); }
+  function handleOk()     { close(); onConfirm(); cleanup(); }
+  function handleCancel() { close(); cleanup(); }
+  function handleBg(e)    { if (e.target === modal) { close(); cleanup(); } }
+  function cleanup() {
+    okBtn.removeEventListener('click', handleOk);
+    document.getElementById('confirm-cancel').removeEventListener('click', handleCancel);
+    modal.removeEventListener('click', handleBg);
+  }
+  okBtn.addEventListener('click', handleOk);
+  document.getElementById('confirm-cancel').addEventListener('click', handleCancel);
+  modal.addEventListener('click', handleBg);
+}
+
 export function showToast(msg, type = 'info') {
   const colors = { info: '#334155', success: '#059669', error: '#dc2626', warn: '#d97706' };
   const el = document.createElement('div');

@@ -2,7 +2,7 @@ import { getState, setState, validateTripsJson, saveCache, loadCache } from './s
 import * as api from './api.js';
 import * as mapMgr from './mapManager.js';
 import * as ui from './uiRenderer.js';
-import { showToast, generateId, esc, ICON_GLOBE } from './utils.js';
+import { showToast, generateId, esc, ICON_GLOBE, openConfirm } from './utils.js';
 
 function getActiveTrip() {
   const { trips, activeTripId } = getState();
@@ -238,7 +238,7 @@ function bindAppEvents() {
 
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    ['trip-modal', 'seg-modal', 'day-modal'].forEach(id => {
+    ['trip-modal', 'seg-modal', 'day-modal', 'confirm-modal'].forEach(id => {
       document.getElementById(id)?.classList.remove('open');
     });
   });
@@ -738,10 +738,12 @@ function openTripModal(trip) {
 
   const delBtn = document.getElementById('tm-delete');
   if (delBtn) delBtn.onclick = () => {
-    if (confirm('確定要刪除這個行程？此動作無法復原。')) {
-      closeTripModal();
-      handleDeleteTrip(tripId);
-    }
+    openConfirm({
+      title: '刪除行程',
+      message: `確定要刪除「${trip?.title || '這個行程'}」？此動作無法復原。`,
+      okLabel: '刪除行程',
+      onConfirm: () => { closeTripModal(); handleDeleteTrip(tripId); },
+    });
   };
 }
 
@@ -750,6 +752,9 @@ function closeTripModal() {
 }
 
 async function saveTripFromModal(existingId) {
+  const saveBtn = document.getElementById('tm-save');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '儲存中...'; }
+  try {
   const title    = document.getElementById('tm-title')?.value.trim();
   const start    = document.getElementById('tm-start')?.value;
   const end      = document.getElementById('tm-end')?.value;
@@ -790,6 +795,9 @@ async function saveTripFromModal(existingId) {
   ui.renderTripSelector(getState().trips, getState().activeTripId);
   renderActiveTrip();
   showToast(existingId ? '行程已更新' : '行程已新增', 'success');
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '儲存'; }
+  }
 }
 
 async function handleDeleteTrip(tripId) {
@@ -826,10 +834,12 @@ function openSegModal(seg, tripId) {
 
   const delBtn = document.getElementById('sm-delete');
   if (delBtn) delBtn.onclick = () => {
-    if (confirm('確定要刪除此分段？其中的每日行程也會一併移除。')) {
-      closeSegModal();
-      handleDeleteSeg(segId, tripId);
-    }
+    openConfirm({
+      title: '刪除分段',
+      message: '確定要刪除此分段？其中的每日行程也會一併移除。',
+      okLabel: '刪除分段',
+      onConfirm: () => { closeSegModal(); handleDeleteSeg(segId, tripId); },
+    });
   };
 }
 
@@ -838,6 +848,9 @@ function closeSegModal() {
 }
 
 async function saveSegFromModal(existingId, tripId) {
+  const saveBtn = document.getElementById('sm-save');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '儲存中...'; }
+  try {
   const name  = document.getElementById('sm-name')?.value.trim();
   const start = document.getElementById('sm-start')?.value;
   const end   = document.getElementById('sm-end')?.value;
@@ -881,6 +894,9 @@ async function saveSegFromModal(existingId, tripId) {
   closeSegModal();
   renderActiveTrip();
   showToast(existingId ? '分段已更新' : '分段已新增', 'success');
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '儲存'; }
+  }
 }
 
 async function handleDeleteSeg(segId, tripId) {
@@ -910,11 +926,52 @@ function openDayModal(day, segId, tripId, dayIndex = -1) {
 
   const delBtn = document.getElementById('dm-delete');
   if (delBtn) delBtn.onclick = () => {
-    if (confirm('確定要刪除此日程？')) {
-      closeDayModal();
-      handleDeleteDay(dayIndex, segId, tripId);
-    }
+    openConfirm({
+      title: '刪除日程',
+      message: '確定要刪除此日程？',
+      okLabel: '刪除',
+      onConfirm: () => { closeDayModal(); handleDeleteDay(dayIndex, segId, tripId); },
+    });
   };
+
+  /* ── Nominatim 地點搜尋 ── */
+  const placeSearch  = document.getElementById('dm-place-search');
+  const placeResults = document.getElementById('dm-place-results');
+  let placeTimer = null;
+  if (placeSearch && placeResults) {
+    placeSearch.addEventListener('input', () => {
+      clearTimeout(placeTimer);
+      const q = placeSearch.value.trim();
+      if (q.length < 2) { placeResults.style.display = 'none'; return; }
+      placeTimer = setTimeout(async () => {
+        try {
+          const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=zh-TW,en`);
+          const data = await res.json();
+          if (!data.length) { placeResults.style.display = 'none'; return; }
+          placeResults.innerHTML = data.map(item => {
+            const label = item.display_name.split(',').slice(0, 3).join(', ');
+            return `<li data-lat="${item.lat}" data-lng="${item.lon}" data-full="${esc(item.display_name)}">${esc(label)}</li>`;
+          }).join('');
+          placeResults.style.display = 'block';
+        } catch { placeResults.style.display = 'none'; }
+      }, 400);
+    });
+    placeSearch.addEventListener('blur', () => {
+      setTimeout(() => { placeResults.style.display = 'none'; }, 200);
+    });
+    placeResults.addEventListener('click', e => {
+      const li = e.target.closest('li');
+      if (!li) return;
+      document.getElementById('dm-lat').value = parseFloat(li.dataset.lat).toFixed(6);
+      document.getElementById('dm-lng').value = parseFloat(li.dataset.lng).toFixed(6);
+      const titleInput = document.getElementById('dm-title');
+      if (titleInput && !titleInput.value.trim()) {
+        titleInput.value = li.dataset.full.split(',')[0].trim();
+      }
+      placeSearch.value = li.textContent;
+      placeResults.style.display = 'none';
+    });
+  }
 }
 
 function closeDayModal() {
@@ -922,6 +979,9 @@ function closeDayModal() {
 }
 
 async function saveDayFromModal(existingIndex, segId, tripId) {
+  const saveBtn = document.getElementById('dm-save');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '儲存中...'; }
+  try {
   const date  = document.getElementById('dm-date')?.value;
   const type  = document.getElementById('dm-type')?.value || 'sightseeing';
   const title = document.getElementById('dm-title')?.value.trim();
@@ -966,6 +1026,9 @@ async function saveDayFromModal(existingIndex, segId, tripId) {
   closeDayModal();
   renderActiveTrip();
   showToast(existingIndex >= 0 ? '日程已更新' : '日程已新增', 'success');
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '儲存'; }
+  }
 }
 
 async function handleDeleteDay(dayIndex, segId, tripId) {

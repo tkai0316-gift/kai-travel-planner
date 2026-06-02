@@ -3,6 +3,8 @@ import {
   formatDate, formatDateShort, formatCurrency,
 } from './utils.js';
 
+const collapsedSegs = new Set();
+
 const STATUS_LABELS = { planning: '規劃中', ongoing: '進行中', completed: '已完成' };
 const STATUS_BADGE  = { planning: 'badge-planning', ongoing: 'badge-ongoing', completed: 'badge-completed' };
 const SEG_COLORS    = ['#0EA5E9','#8B5CF6','#22C55E','#F97316','#EF4444','#F59E0B','#EC4899','#64748B'];
@@ -111,10 +113,12 @@ export function renderTimeline(trip) {
       if (e.target.closest('button')) return;
       const body  = hdr.nextElementSibling;
       const arrow = hdr.querySelector('.seg-arrow');
+      const segId = hdr.closest('.seg-block')?.dataset.segId;
       if (!body) return;
       const hidden = body.style.display === 'none';
       body.style.display = hidden ? 'block' : 'none';
       if (arrow) arrow.textContent = hidden ? '▼' : '▶';
+      if (segId) { if (hidden) collapsedSegs.delete(segId); else collapsedSegs.add(segId); }
     });
   });
 
@@ -138,10 +142,11 @@ export function renderTimeline(trip) {
 function renderSegment(seg, today = '') {
   const color = esc(seg.color || '#64748b');
   const days  = seg.daily || [];
+  const isCollapsed = collapsedSegs.has(seg.id);
   return `
-    <div class="seg-block">
+    <div class="seg-block" data-seg-id="${esc(seg.id)}">
       <div class="seg-header" style="border-left:3px solid ${color}">
-        <span class="seg-arrow">▼</span>
+        <span class="seg-arrow">${isCollapsed ? '▶' : '▼'}</span>
         <div class="seg-info">
           <div class="seg-name">${esc(seg.name)}</div>
           <div class="seg-dates-sm">${esc(formatDateShort(seg.start_date))} – ${esc(formatDateShort(seg.end_date))} · ${days.length} 天</div>
@@ -149,7 +154,7 @@ function renderSegment(seg, today = '') {
         <div class="seg-dot" style="background:${color}"></div>
         <button class="btn btn-icon btn-sm seg-edit-btn" data-seg-id="${esc(seg.id)}" data-edit title="編輯分段">${ICON_EDIT}</button>
       </div>
-      <div class="seg-body">
+      <div class="seg-body"${isCollapsed ? ' style="display:none"' : ''}>
         ${days.map((day, i) => renderDayCard(day, i, seg.id, today)).join('')}
         <div style="padding:4px var(--pp) 8px">
           <button class="btn btn-link btn-sm add-day-btn" data-seg-id="${esc(seg.id)}" data-edit>＋ 新增日程</button>
@@ -636,6 +641,11 @@ export function renderDayModal(day, segStart, segEnd) {
     <div class="form-row">
       <label class="form-label">備註</label>
       <input class="form-input" id="dm-note" maxlength="200" value="${esc(d.note || '')}" placeholder="選填">
+    </div>
+    <div class="form-row" style="position:relative">
+      <label class="form-label">搜尋地點 <span style="color:var(--c-muted-lt);font-weight:400">（自動帶入座標）</span></label>
+      <input class="form-input" id="dm-place-search" placeholder="例：淺草寺、東京鐵塔、Colosseum..." maxlength="100" autocomplete="off">
+      <ul id="dm-place-results" class="place-dropdown" style="display:none"></ul>
     </div>
     <div class="form-2col">
       <div class="form-row">
