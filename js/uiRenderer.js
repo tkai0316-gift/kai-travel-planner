@@ -161,6 +161,7 @@ function renderTodoPacking(trip) {
     <div class="checklist-item${item.done ? ' done' : ''}" data-todo-id="${esc(item.id)}">
       <div class="checklist-cb">${item.done ? ICON_CHECK : ''}</div>
       <span class="checklist-text">${esc(item.text)}</span>
+      <button class="checklist-del-btn" data-todo-del="${esc(item.id)}" data-edit title="刪除">×</button>
     </div>`).join('');
 
   const catMap = {};
@@ -171,6 +172,7 @@ function renderTodoPacking(trip) {
     <div class="checklist-item${item.done ? ' done' : ''}" data-packing-id="${esc(item.id)}">
       <div class="checklist-cb">${item.done ? ICON_CHECK : ''}</div>
       <span class="checklist-text">${esc(item.text)}</span>
+      <button class="checklist-del-btn" data-packing-del="${esc(item.id)}" data-edit title="刪除">×</button>
     </div>`).join('')}`).join('');
 
   return `

@@ -325,11 +325,39 @@ function bindChecklistEvents(trip) {
   });
 
   document.querySelectorAll('[data-todo-id]').forEach(item => {
-    item.addEventListener('click', () => toggleTodo(trip, item.dataset.todoId));
+    item.addEventListener('click', e => {
+      if (e.target.closest('[data-todo-del]')) return;
+      toggleTodo(trip, item.dataset.todoId);
+    });
+  });
+
+  document.querySelectorAll('[data-todo-del]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.todoDel;
+      trip.todo = (trip.todo || []).filter(t => t.id !== id);
+      persistTrip(trip).then(ok => {
+        if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
+      });
+    });
   });
 
   document.querySelectorAll('[data-packing-id]').forEach(item => {
-    item.addEventListener('click', () => togglePacking(trip, item.dataset.packingId));
+    item.addEventListener('click', e => {
+      if (e.target.closest('[data-packing-del]')) return;
+      togglePacking(trip, item.dataset.packingId);
+    });
+  });
+
+  document.querySelectorAll('[data-packing-del]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.packingDel;
+      trip.packing = (trip.packing || []).filter(p => p.id !== id);
+      persistTrip(trip).then(ok => {
+        if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
+      });
+    });
   });
 
   document.getElementById('todo-add-btn')?.addEventListener('click', () => {

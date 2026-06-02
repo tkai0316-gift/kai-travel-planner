@@ -271,7 +271,14 @@ button, input, select {
 }
 .checklist-cb svg { width: 10px; height: 10px; color: white; }
 
-.checklist-text { font-size: 13px; color: var(--c-text); }
+.checklist-text { font-size: 13px; color: var(--c-text); flex: 1; }
+.checklist-del-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: var(--c-muted-lt); padding: 0 2px; line-height: 1;
+  flex-shrink: 0; opacity: 0; transition: opacity .15s, color .15s;
+}
+.checklist-item:hover .checklist-del-btn { opacity: 1; }
+.checklist-del-btn:hover { color: #ef4444; }
 
 .checklist-add-row {
   display: flex;
