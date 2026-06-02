@@ -121,8 +121,13 @@ function bindAppEvents() {
 
   const toggleBtn = document.getElementById('panel-toggle');
   const leftPanel = document.getElementById('left-panel');
+  const ICON_MENU = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
+  const ICON_CLOSE = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   if (toggleBtn && leftPanel) {
-    toggleBtn.addEventListener('click', () => leftPanel.classList.toggle('panel-open'));
+    toggleBtn.addEventListener('click', () => {
+      const isOpen = leftPanel.classList.toggle('panel-open');
+      toggleBtn.innerHTML = isOpen ? ICON_CLOSE : ICON_MENU;
+    });
   }
 
   const signOutBtn = document.getElementById('signout-btn');
