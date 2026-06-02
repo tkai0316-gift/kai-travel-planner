@@ -22,12 +22,7 @@ async function init() {
     showToast('已離線，切換為唯讀模式', 'warn');
   });
 
-  if (!user) {
-    ui.showAuthOverlay();
-    bindAuthEvents();
-    return;
-  }
-
+  // DEV BYPASS: 暫時跳過 auth，測試 UI 用
   ui.hideAuthOverlay();
   await loadData();
   initMap();
@@ -36,7 +31,18 @@ async function init() {
 
 async function loadData() {
   const { user, isOnline } = getState();
-  if (!user) return;
+  if (!user) {
+    const cached = loadCache();
+    if (cached) setState({ trips: cached.trips, preferences: cached.prefs || {} });
+    const { trips } = getState();
+    const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+    if (!getState().activeTripId && allTrips.length > 0) setState({ activeTripId: allTrips[0].id });
+    ui.renderTripSelector(trips, getState().activeTripId);
+    ui.setActiveTab(getState().activeTab);
+    ui.setOnlineState(getState().isOnline);
+    renderActiveTrip();
+    return;
+  }
 
   if (isOnline) {
     try {
