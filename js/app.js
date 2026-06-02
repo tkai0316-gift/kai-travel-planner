@@ -217,7 +217,7 @@ function makeTagManager(wrapId, arr) {
       btn.addEventListener('click', () => { arr.splice(+btn.dataset.i, 1); render(); })
     );
     wrap.querySelector('.tag-input')?.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); doAdd(); }
+      if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); doAdd(); }
     });
   }
   render();
