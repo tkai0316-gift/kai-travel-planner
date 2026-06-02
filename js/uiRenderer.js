@@ -83,6 +83,34 @@ export function renderTimeline(trip) {
       daysChip = `<span class="trip-stat-chip accent">旅途中 · 第 ${dayNum} / ${totalTripDays} 天</span>`;
     }
   }
+  const startDiff = trip.start_date ? Math.ceil((new Date(trip.start_date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) : null;
+  const endDiff   = trip.end_date   ? Math.ceil((new Date(trip.end_date   + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) : null;
+  const isOngoing = startDiff !== null && endDiff !== null && startDiff < 0 && endDiff >= 0;
+  let todaySummaryHtml = '';
+  if (isOngoing) {
+    const todayItems = (trip.segments || []).flatMap(seg =>
+      (seg.daily || []).filter(d => d.date === today).map(d => ({ ...d, _segName: seg.name, _segColor: seg.color || '#64748b' }))
+    );
+    if (todayItems.length) {
+      const dayNum = -startDiff + 1;
+      todaySummaryHtml = `<div class="today-summary">
+        <div class="today-summary-hdr">
+          <span class="today-summary-title">今日行程</span>
+          <span class="today-summary-day">第 ${dayNum} 天</span>
+        </div>
+        ${todayItems.map(d => `
+          <div class="today-summary-item">
+            <span class="day-icon day-icon-${esc(d.type || 'sightseeing')}">${TYPE_ICONS[d.type] || TYPE_ICONS.sightseeing}</span>
+            <div class="today-summary-body">
+              <div class="today-summary-item-title">${esc(d.title || '')}</div>
+              ${d.note ? `<div class="today-summary-item-note">${esc(d.note)}</div>` : ''}
+            </div>
+            <span class="today-summary-seg" style="color:${esc(d._segColor)}">${esc(d._segName)}</span>
+          </div>`).join('')}
+      </div>`;
+    }
+  }
+
   const statsHtml = `<div class="trip-stats">
     ${totalDays ? `<span class="trip-stat-chip">${totalDays} 天行程</span>` : ''}
     ${totalDests ? `<span class="trip-stat-chip">${totalDests} 個地點</span>` : ''}
@@ -104,6 +132,7 @@ export function renderTimeline(trip) {
       ${statsHtml}
       ${trip.notes ? `<div class="trip-notes">${esc(trip.notes)}</div>` : ''}
     </div>
+    ${todaySummaryHtml}
     <div id="segments-container">${(trip.segments || []).map(seg => renderSegment(seg, today)).join('')}</div>
     ${renderTodoPacking(trip)}
   `;
