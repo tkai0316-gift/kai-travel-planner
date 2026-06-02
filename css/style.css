@@ -430,6 +430,94 @@ button, input, select {
   line-height: 1.6;
 }
 
+/* ── Modal ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15,23,42,.7);
+  backdrop-filter: blur(3px);
+  padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal-card {
+  background: var(--c-bg);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0,0,0,.18);
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--c-border);
+  flex-shrink: 0;
+}
+.modal-title { font-size: 15px; font-weight: 600; color: var(--c-text); }
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--c-muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.modal-close:hover { background: var(--c-surface); color: var(--c-text); }
+.modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+.modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--c-border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* ── Form (Modal 內通用) ── */
+.form-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.form-row:last-child { margin-bottom: 0; }
+.form-label { font-size: 12px; font-weight: 500; color: var(--c-muted); }
+.form-input {
+  width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-btn);
+  padding: 8px 10px;
+  background: var(--c-bg);
+  color: var(--c-text);
+  outline: none;
+  box-sizing: border-box;
+}
+.form-input:focus { border-color: var(--c-primary); }
+.form-2col { display: flex; gap: 12px; }
+.form-2col .form-row { flex: 1; margin-bottom: 0; }
+
+/* ── Color Swatches ── */
+.color-swatch-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0; }
+.color-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color .15s;
+}
+.color-swatch.selected { outline-color: var(--c-text); }
+
 /* ── Auth Overlay ── */
 #auth-overlay {
   display: flex;
