@@ -2,7 +2,7 @@ import { getState, setState, validateTripsJson, saveCache, loadCache } from './s
 import * as api from './api.js';
 import * as mapMgr from './mapManager.js';
 import * as ui from './uiRenderer.js';
-import { showToast, generateId } from './utils.js';
+import { showToast, generateId, esc, ICON_GLOBE } from './utils.js';
 
 let pendingEmail = '';
 
@@ -130,9 +130,126 @@ function bindAppEvents() {
     await api.signOut();
     location.reload();
   });
+
+  document.getElementById('panel-prefs')?.addEventListener('click', e => {
+    if (e.target.id === 'prefs-edit-btn') {
+      const { preferences } = getState();
+      ui.renderPrefsEdit(preferences);
+      bindPrefsEditEvents(preferences);
+    }
+  });
 }
 
 /* ── Checklist (Todo / Packing) ── */
+/* ── Prefs Edit ── */
+function toArr(val) {
+  if (Array.isArray(val)) return [...val];
+  if (val && typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
+  return [];
+}
+
+function makeTagManager(wrapId, arr) {
+  function render() {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    wrap.innerHTML = arr.map((t, i) =>
+      `<span class="tag-chip">${esc(t)}<button class="tag-rm" data-i="${i}">×</button></span>`
+    ).join('') + `<input class="tag-input" placeholder="新增…" maxlength="40">`;
+    wrap.querySelectorAll('.tag-rm').forEach(btn =>
+      btn.addEventListener('click', () => { arr.splice(+btn.dataset.i, 1); render(); })
+    );
+    const input = wrap.querySelector('.tag-input');
+    if (input) input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const v = input.value.trim();
+        if (v && !arr.includes(v)) { arr.push(v); render(); }
+      }
+    });
+  }
+  render();
+}
+
+function bindPrefsEditEvents(initPrefs) {
+  const langs = toArr(initPrefs?.language_skills);
+  const ints  = toArr(initPrefs?.interests);
+  const bl    = [...(initPrefs?.bucket_list || [])];
+
+  makeTagManager('pe-lang-wrap', langs);
+  makeTagManager('pe-int-wrap',  ints);
+
+  function renderBl() {
+    const list = document.getElementById('pe-bl-list');
+    if (!list) return;
+    list.innerHTML = bl.length
+      ? bl.map((b, i) => `
+          <div class="bucket-item" style="justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">
+              <span class="bucket-icon">${ICON_GLOBE}</span>
+              <span class="bucket-name">${esc(b.destination)}</span>
+              ${b.notes ? `<span class="bucket-note">${esc(b.notes)}</span>` : ''}
+            </div>
+            <button class="tag-rm" data-i="${i}" style="font-size:18px;padding:0 4px;flex-shrink:0">×</button>
+          </div>`).join('')
+      : '<div style="font-size:12px;color:var(--c-muted-lt);padding:6px 0">尚無 Bucket List</div>';
+    list.querySelectorAll('[data-i]').forEach(btn =>
+      btn.addEventListener('click', () => { bl.splice(+btn.dataset.i, 1); renderBl(); })
+    );
+  }
+  renderBl();
+
+  document.getElementById('pe-bl-add')?.addEventListener('click', () => {
+    const form = document.getElementById('pe-bl-form');
+    if (!form || form.style.display === 'flex') return;
+    form.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-top:8px';
+    form.innerHTML = `
+      <input id="pe-bl-dest"  class="pref-input" placeholder="目的地" maxlength="80">
+      <input id="pe-bl-notes" class="pref-input" placeholder="備註（選填）" maxlength="200">
+      <div style="display:flex;gap:6px">
+        <button id="pe-bl-cx"  class="btn btn-ghost"   style="flex:1;font-size:12px">取消</button>
+        <button id="pe-bl-ok"  class="btn btn-primary" style="flex:1;font-size:12px">新增</button>
+      </div>`;
+    document.getElementById('pe-bl-cx')?.addEventListener('click', () => {
+      form.style.display = 'none'; form.innerHTML = '';
+    });
+    document.getElementById('pe-bl-ok')?.addEventListener('click', () => {
+      const dest = document.getElementById('pe-bl-dest')?.value.trim();
+      if (!dest) { showToast('請填寫目的地', 'warn'); return; }
+      bl.push({ destination: dest, notes: document.getElementById('pe-bl-notes')?.value.trim() || '' });
+      form.style.display = 'none'; form.innerHTML = '';
+      renderBl();
+    });
+  });
+
+  document.getElementById('pe-cancel')?.addEventListener('click', () => {
+    ui.renderPrefs(getState().preferences);
+  });
+
+  document.getElementById('pe-save')?.addEventListener('click', async () => {
+    const { user, isOnline } = getState();
+    if (!isOnline) { showToast('離線中，無法儲存', 'warn'); return; }
+    const updated = {
+      ...initPrefs,
+      travel_style:      document.getElementById('pe-style')?.value,
+      budget_level:      document.getElementById('pe-budget')?.value,
+      pace_preference:   document.getElementById('pe-pace')?.value,
+      travel_companions: document.getElementById('pe-companion')?.value,
+      language_skills:   [...langs],
+      interests:         [...ints],
+      bucket_list:       [...bl],
+    };
+    if (user) {
+      try { await api.savePreferences(user.id, updated); }
+      catch { showToast('儲存失敗，請重試', 'error'); return; }
+    }
+    setState({ preferences: updated });
+    saveCache(getState().trips, updated);
+    showToast('偏好設定已儲存', 'success');
+    ui.renderPrefs(updated);
+  });
+}
+
+/* ── Checklist ── */
 function bindChecklistEvents(trip) {
   if (!trip) return;
 

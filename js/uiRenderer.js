@@ -276,7 +276,11 @@ export function renderPrefs(prefs) {
   const el = document.getElementById('prefs-content');
   if (!el) return;
   if (!prefs || !Object.keys(prefs).length) {
-    el.innerHTML = '<div class="empty-state">尚無偏好設定<br><small>前往「資料」匯入 preferences.json</small></div>';
+    el.innerHTML = `
+      <div style="padding:var(--pp)">
+        <div class="empty-state">尚無偏好設定</div>
+        <button id="prefs-edit-btn" class="btn btn-primary" style="width:100%;margin-top:12px">開始設定</button>
+      </div>`;
     return;
   }
   const bl  = prefs.bucket_list || [];
@@ -287,7 +291,10 @@ export function renderPrefs(prefs) {
   el.innerHTML = `
     <div style="padding:var(--pp);display:flex;flex-direction:column;gap:16px">
       <div class="surface-card">
-        <div class="section-lbl">基本資料</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span class="section-lbl" style="margin:0">基本資料</span>
+          <button id="prefs-edit-btn" class="btn btn-ghost" style="font-size:11px;padding:3px 10px;min-height:unset">編輯</button>
+        </div>
         ${row('旅行風格', prefs.travel_style)}
         ${row('預算層級', prefs.budget_level)}
         ${row('旅行節奏', prefs.pace_preference)}
@@ -297,12 +304,55 @@ export function renderPrefs(prefs) {
       </div>
       <div>
         <div class="section-lbl">Bucket List (${bl.length})</div>
-        ${bl.map(b => `
+        ${bl.length ? bl.map(b => `
           <div class="bucket-item">
             <span class="bucket-icon">${ICON_GLOBE}</span>
             <span class="bucket-name">${esc(b.destination)}</span>
             ${b.notes ? `<span class="bucket-note">${esc(b.notes)}</span>` : ''}
-          </div>`).join('')}
+          </div>`).join('') : '<div style="font-size:12px;color:var(--c-muted-lt);padding:6px 0">尚無 Bucket List</div>'}
+      </div>
+    </div>
+  `;
+}
+
+export function renderPrefsEdit(prefs) {
+  const el = document.getElementById('prefs-content');
+  if (!el) return;
+  const p = prefs || {};
+  const STYLE_OPTS     = ['adaptable','budget','comfort','luxury','adventure'];
+  const BUDGET_OPTS    = ['budget','moderate','varies_by_destination','high'];
+  const PACE_OPTS      = ['slow','moderate','fast'];
+  const COMPANION_OPTS = ['solo','couple','family','group'];
+
+  const sel = (id, opts, val) =>
+    `<select id="${id}" class="pref-select">${opts.map(o =>
+      `<option value="${o}"${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
+
+  const erow = (label, content) =>
+    `<div class="pref-edit-row"><span class="pref-label">${label}</span>${content}</div>`;
+
+  el.innerHTML = `
+    <div style="padding:var(--pp);display:flex;flex-direction:column;gap:16px">
+      <div class="surface-card">
+        <div class="section-lbl">基本資料</div>
+        ${erow('旅行風格', sel('pe-style',     STYLE_OPTS,     p.travel_style))}
+        ${erow('預算層級', sel('pe-budget',    BUDGET_OPTS,    p.budget_level))}
+        ${erow('旅行節奏', sel('pe-pace',      PACE_OPTS,      p.pace_preference))}
+        ${erow('同伴',     sel('pe-companion', COMPANION_OPTS, p.travel_companions))}
+        ${erow('語言',     '<div class="tag-wrap" id="pe-lang-wrap"></div>')}
+        ${erow('興趣',     '<div class="tag-wrap" id="pe-int-wrap"></div>')}
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span class="section-lbl" style="margin:0">Bucket List</span>
+          <button id="pe-bl-add" class="btn btn-ghost" style="font-size:11px;padding:3px 10px;min-height:unset">＋ 新增</button>
+        </div>
+        <div id="pe-bl-list"></div>
+        <div id="pe-bl-form" style="display:none"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="pe-cancel" class="btn btn-ghost" style="flex:1">取消</button>
+        <button id="pe-save"   class="btn btn-primary" style="flex:1">儲存</button>
       </div>
     </div>
   `;
