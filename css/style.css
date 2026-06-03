@@ -814,6 +814,8 @@ button, input, select {
   .form-input                 { background: #1E293B; color: #F1F5F9; }
   .expense-form input,
   .expense-form select        { background: #1E293B; color: #F1F5F9; }
+  .expense-del-btn,
+  .expense-edit-btn           { color: var(--c-muted); }
   .color-swatch.selected      { outline-color: #F1F5F9; }
   .today-summary              { background: rgba(249,115,22,.08); border-color: rgba(249,115,22,.25); }
   .today-summary-hdr          { border-bottom-color: rgba(249,115,22,.2); }
