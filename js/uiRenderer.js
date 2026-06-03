@@ -42,7 +42,8 @@ export function renderTripSelector(trips, activeTripId) {
   const label = document.getElementById('trip-selector-label');
   const list = document.getElementById('trip-selector-list');
   if (!btn || !list) return;
-  const all = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+  const all = [...(trips.current_trips || []), ...(trips.past_trips || [])]
+    .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
   if (all.length === 0) { if (label) label.textContent = '（尚無行程）'; list.innerHTML = ''; return; }
   const active = all.find(t => t.id === activeTripId) || all[0];
   if (label) label.textContent = active ? active.title : '';
