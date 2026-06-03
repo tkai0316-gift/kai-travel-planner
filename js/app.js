@@ -281,20 +281,18 @@ function bindAppEvents() {
       if (e.button !== 0) return;
       ptrDown = true; hasDragged = false;
       startX = e.clientX; scrollLeft = dayTabsEl.scrollLeft;
-      dayTabsEl.setPointerCapture(e.pointerId);
       dayTabsEl.classList.add('grabbing');
     });
     dayTabsEl.addEventListener('pointermove', e => {
       if (!ptrDown) return;
       const dx = e.clientX - startX;
-      if (Math.abs(dx) > 4) hasDragged = true;
+      if (Math.abs(dx) > 8) hasDragged = true;
       dayTabsEl.scrollLeft = scrollLeft - dx;
     });
-    dayTabsEl.addEventListener('pointerup', () => {
-      ptrDown = false;
-      dayTabsEl.classList.remove('grabbing');
-    });
-    // 拖拉時攔截 click，防止誤觸 day-tab-btn
+    const endDrag = () => { ptrDown = false; dayTabsEl.classList.remove('grabbing'); };
+    dayTabsEl.addEventListener('pointerup', endDrag);
+    dayTabsEl.addEventListener('pointerleave', endDrag);
+    // 只有確實拖拉時才攔截 click，防止誤觸 day-tab-btn
     dayTabsEl.addEventListener('click', e => {
       if (hasDragged) { e.stopPropagation(); hasDragged = false; }
     }, true);
