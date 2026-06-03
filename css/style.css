@@ -812,6 +812,8 @@ button, input, select {
   .trip-dropdown li:hover,
   .place-dropdown li:hover    { background: #334155; }
   .form-input                 { background: #1E293B; color: #F1F5F9; }
+  .expense-form input,
+  .expense-form select        { background: #1E293B; color: #F1F5F9; }
   .color-swatch.selected      { outline-color: #F1F5F9; }
   .today-summary              { background: rgba(249,115,22,.08); border-color: rgba(249,115,22,.25); }
   .today-summary-hdr          { border-bottom-color: rgba(249,115,22,.2); }
