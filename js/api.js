@@ -90,6 +90,15 @@ const WMO_ICON = {
   95: '⛈', 96: '⛈', 99: '⛈',
 };
 
+export async function fetchExchangeRates(base = 'TWD') {
+  try {
+    const res = await fetch(`https://api.frankfurter.app/latest?from=${encodeURIComponent(base)}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.rates ?? null;
+  } catch { return null; }
+}
+
 export async function fetchWeather(lat, lng) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=16`;
   const res = await fetch(url);

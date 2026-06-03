@@ -10,6 +10,7 @@ const state = {
   activeTab: 'trips',
   activeTripId: null,
   weatherCache: {},
+  ratesCache: {},
 };
 
 export function getState() { return state; }

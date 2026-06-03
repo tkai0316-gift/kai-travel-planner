@@ -375,28 +375,36 @@ function renderTodoPacking(trip) {
 }
 
 /* ── Budget ── */
-export function renderBudget(trip) {
+function toBase(amount, currency, base, rates) {
+  if (!currency || currency === base || !rates) return amount;
+  const r = rates[currency];
+  return r ? amount / r : amount;
+}
+
+export function renderBudget(trip, rates = null) {
   const el = document.getElementById('budget-content');
   if (!el) return;
   if (!trip) { el.innerHTML = '<div class="empty-state">請先選擇行程</div>'; return; }
 
-  const expenses = [...(trip.expenses || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  const total    = expenses.reduce((s, e) => s + (e.amount || 0), 0);
-  const budget   = trip.budget_total || 0;
-  const currency = trip.base_currency || 'TWD';
-  const pct      = budget ? Math.min(100, Math.round(total / budget * 100)) : 0;
-  const over     = budget && total > budget;
+  const expenses  = [...(trip.expenses || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const base      = trip.base_currency || 'TWD';
+  const hasMixed  = expenses.some(e => e.currency && e.currency !== base);
+  const total     = expenses.reduce((s, e) => s + toBase(e.amount || 0, e.currency || base, base, rates), 0);
+  const budget    = trip.budget_total || 0;
+  const pct       = budget ? Math.min(100, Math.round(total / budget * 100)) : 0;
+  const over      = budget && total > budget;
   const byCategory = {};
-  expenses.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + (e.amount || 0); });
+  expenses.forEach(e => { byCategory[e.category] = (byCategory[e.category] || 0) + toBase(e.amount || 0, e.currency || base, base, rates); });
 
   el.innerHTML = `
     <div style="padding:var(--pp);display:flex;flex-direction:column;gap:16px">
       <div class="budget-summary">
         <div class="section-lbl">預算使用</div>
         <div class="budget-amount-row">
-          <span class="budget-amount">${esc(formatCurrency(total, currency))}</span>
-          ${budget ? `<span class="budget-total-lbl">/ ${esc(formatCurrency(budget, currency))}</span>` : ''}
+          <span class="budget-amount">${esc(formatCurrency(total, base))}</span>
+          ${budget ? `<span class="budget-total-lbl">/ ${esc(formatCurrency(budget, base))}</span>` : ''}
         </div>
+        ${hasMixed && rates ? `<div class="budget-converted-note">匯率換算合計</div>` : ''}
         ${budget ? `
           <div class="budget-bar-track">
             <div class="budget-bar-fill${over ? ' over' : ''}" style="width:${pct}%"></div>
@@ -412,7 +420,7 @@ export function renderBudget(trip) {
         <div id="expense-form-wrap"></div>
         ${expenses.length === 0
           ? '<div style="text-align:center;color:var(--c-muted-lt);font-size:13px;padding:16px 0">尚無花費記錄</div>'
-          : `<div id="expense-list">${renderExpensesByDate(expenses, currency)}</div>`
+          : `<div id="expense-list">${renderExpensesByDate(expenses, base, rates)}</div>`
         }
       </div>
     </div>
@@ -448,7 +456,7 @@ function renderExpenseRow(e, fallbackCurrency) {
     </div>`;
 }
 
-function renderExpensesByDate(expenses, currency) {
+function renderExpensesByDate(expenses, base, rates = null) {
   const dateMap = new Map();
   expenses.forEach(e => {
     const d = e.date || '';
@@ -457,15 +465,15 @@ function renderExpensesByDate(expenses, currency) {
   });
 
   return [...dateMap.entries()].map(([date, items]) => {
-    const subtotal = items.reduce((s, e) => s + (e.amount || 0), 0);
+    const subtotal = items.reduce((s, e) => s + toBase(e.amount || 0, e.currency || base, base, rates), 0);
     const label = date ? esc(formatDate(date)) : '未指定日期';
     return `
       <div class="expense-date-card">
         <div class="expense-date-hdr">
           <span class="expense-date-hdr-label">${label}</span>
-          <span class="expense-date-hdr-subtotal">${esc(formatCurrency(subtotal, currency))}</span>
+          <span class="expense-date-hdr-subtotal">${esc(formatCurrency(subtotal, base))}</span>
         </div>
-        ${items.map(e => renderExpenseRow(e, currency)).join('')}
+        ${items.map(e => renderExpenseRow(e, base)).join('')}
       </div>`;
   }).join('');
 }

@@ -97,6 +97,11 @@ async function loadData() {
   renderActiveTrip();
 }
 
+function getRates(trip) {
+  const base = trip?.base_currency || 'TWD';
+  return getState().ratesCache[base] || null;
+}
+
 function renderActiveTrip() {
   const { trips, activeTripId, preferences } = getState();
   const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
@@ -104,7 +109,7 @@ function renderActiveTrip() {
 
   ui.renderTimeline(trip, getState().weatherCache);
   ui.renderDayTabs(trip);
-  ui.renderBudget(trip);
+  ui.renderBudget(trip, getRates(trip));
   ui.renderPrefs(preferences);
   ui.renderDataPanel(trips);
   bindChecklistEvents(trip);
@@ -113,6 +118,7 @@ function renderActiveTrip() {
   if (trip) {
     mapMgr.renderTrip(trip);
     loadWeather(trip);
+    loadRates(trip);
   } else {
     mapMgr.clearMap();
   }
@@ -150,6 +156,17 @@ async function loadWeather(trip) {
   const { trips, activeTripId } = getState();
   const active = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === activeTripId);
   if (active?.id === trip.id) ui.renderTimeline(active, updated);
+}
+
+async function loadRates(trip) {
+  const base = trip?.base_currency || 'TWD';
+  if (getState().ratesCache[base]) return;
+  const rates = await api.fetchExchangeRates(base);
+  if (!rates) return;
+  setState({ ratesCache: { ...getState().ratesCache, [base]: rates } });
+  const { trips, activeTripId } = getState();
+  const active = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === activeTripId);
+  if (active?.id === trip.id) ui.renderBudget(active, rates);
 }
 
 function initMap() {
@@ -239,7 +256,7 @@ function bindAppEvents() {
     if (delBtn) {
       const expId = delBtn.dataset.expenseId;
       trip.expenses = (trip.expenses || []).filter(ex => ex.id !== expId);
-      persistTrip(trip).then(ok => { if (ok) ui.renderBudget(trip); });
+      persistTrip(trip).then(ok => { if (ok) ui.renderBudget(trip, getRates(trip)); });
     }
   });
 
@@ -889,7 +906,7 @@ function bindExpenseFormEvents(trip, existingExp = null) {
     const ok = await persistTrip(trip);
     if (!ok) { if (!existingExp) trip.expenses = trip.expenses.slice(0, -1); return; }
     showToast(existingExp ? '花費已更新' : '花費已新增', 'success');
-    ui.renderBudget(trip);
+    ui.renderBudget(trip, getRates(trip));
   });
 }
 
