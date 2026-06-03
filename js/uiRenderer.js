@@ -550,10 +550,15 @@ export function renderPrefsEdit(prefs) {
     slow: '慢步調', fast: '緊湊',
     solo: '獨旅', couple: '雙人', family: '家庭', group: '團體',
   };
+  const lbl = o => OPT_LABELS[o] || o;
 
   const sel = (id, opts, val) =>
-    `<select id="${id}" class="pref-select">${opts.map(o =>
-      `<option value="${o}"${val===o?' selected':''}>${OPT_LABELS[o] || o}</option>`).join('')}</select>`;
+    `<div class="cs" id="${id}" data-val="${esc(val || opts[0])}">
+      <button type="button" class="cs-btn"><span class="cs-label">${esc(lbl(val || opts[0]))}</span><span class="cs-arr">▾</span></button>
+      <div class="cs-opts">${opts.map(o =>
+        `<div class="cs-opt${o === val ? ' cs-on' : ''}" data-val="${o}">${esc(lbl(o))}</div>`
+      ).join('')}</div>
+    </div>`;
 
   const erow = (label, content) =>
     `<div class="pref-edit-row"><span class="pref-label">${label}</span>${content}</div>`;

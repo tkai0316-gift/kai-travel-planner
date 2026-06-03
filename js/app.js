@@ -349,6 +349,30 @@ function bindPrefsEditEvents(initPrefs) {
   makeTagManager(SEL.peLangWrap, langs);
   makeTagManager(SEL.peIntWrap,  ints);
 
+  // Custom select (cs) events
+  const onCsOutside = e => {
+    if (!e.target.closest('.cs')) document.querySelectorAll('.cs.open').forEach(el => el.classList.remove('open'));
+  };
+  document.addEventListener('click', onCsOutside);
+
+  document.querySelectorAll('.cs').forEach(cs => {
+    cs.querySelector('.cs-btn')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const isOpen = cs.classList.contains('open');
+      document.querySelectorAll('.cs.open').forEach(el => el.classList.remove('open'));
+      if (!isOpen) cs.classList.add('open');
+    });
+    cs.querySelectorAll('.cs-opt').forEach(opt => {
+      opt.addEventListener('click', e => {
+        e.stopPropagation();
+        cs.dataset.val = opt.dataset.val;
+        cs.querySelector('.cs-label').textContent = opt.textContent;
+        cs.querySelectorAll('.cs-opt').forEach(o => o.classList.toggle('cs-on', o === opt));
+        cs.classList.remove('open');
+      });
+    });
+  });
+
   function renderBl() {
     const list = q(SEL.peBlList);
     if (!list) return;
@@ -399,6 +423,7 @@ function bindPrefsEditEvents(initPrefs) {
   });
 
   q(SEL.peCancel)?.addEventListener('click', () => {
+    document.removeEventListener('click', onCsOutside);
     ui.renderPrefs(getState().preferences);
   });
 
@@ -407,10 +432,10 @@ function bindPrefsEditEvents(initPrefs) {
     if (!isOnline) { showToast('離線中，無法儲存', 'warn'); return; }
     const updated = {
       ...initPrefs,
-      travel_style:      q(SEL.peStyle)?.value,
-      budget_level:      q(SEL.peBudget)?.value,
-      pace_preference:   q(SEL.pePace)?.value,
-      travel_companions: q(SEL.peCompanion)?.value,
+      travel_style:      q(SEL.peStyle)?.dataset.val,
+      budget_level:      q(SEL.peBudget)?.dataset.val,
+      pace_preference:   q(SEL.pePace)?.dataset.val,
+      travel_companions: q(SEL.peCompanion)?.dataset.val,
       language_skills:   [...langs],
       interests:         [...ints],
       bucket_list:       [...bl],
@@ -421,6 +446,7 @@ function bindPrefsEditEvents(initPrefs) {
     }
     setState({ preferences: updated });
     saveCache(getState().trips, updated);
+    document.removeEventListener('click', onCsOutside);
     showToast('偏好設定已儲存', 'success');
     ui.renderPrefs(updated);
   });
