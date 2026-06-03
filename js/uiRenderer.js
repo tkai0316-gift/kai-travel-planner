@@ -229,6 +229,21 @@ function renderSegment(seg, today = '') {
   const color = esc(seg.color || '#64748b');
   const days  = seg.daily || [];
   const isCollapsed = collapsedSegs.has(seg.id);
+
+  // Group days by date (preserving original indices for edit buttons)
+  const dateMap = new Map();
+  days.forEach((day, i) => {
+    const d = day.date || '';
+    if (!dateMap.has(d)) dateMap.set(d, []);
+    dateMap.get(d).push({ day, i });
+  });
+
+  const bodyHtml = [...dateMap.entries()].map(([date, items]) => {
+    const weatherDay = items.find(({ day }) => day.weather?.condition || day.weather?.temp)?.day;
+    return renderDaySummaryHeader(date, weatherDay, today)
+      + items.map(({ day, i }) => renderDayCard(day, i, seg.id, today)).join('');
+  }).join('');
+
   return `
     <div class="seg-block" data-seg-id="${esc(seg.id)}">
       <div class="seg-header" style="border-left:3px solid ${color}">
@@ -241,13 +256,31 @@ function renderSegment(seg, today = '') {
         <button class="btn btn-icon btn-sm seg-edit-btn" data-seg-id="${esc(seg.id)}" data-edit title="編輯分段">${ICON_EDIT}</button>
       </div>
       <div class="seg-body"${isCollapsed ? ' style="display:none"' : ''}>
-        ${days.map((day, i) => renderDayCard(day, i, seg.id, today)).join('')}
+        ${bodyHtml}
         <div style="padding:4px var(--pp) 8px">
           <button class="btn btn-link btn-sm add-day-btn" data-seg-id="${esc(seg.id)}" data-edit>＋ 新增日程</button>
         </div>
       </div>
     </div>
   `;
+}
+
+function renderDaySummaryHeader(date, weatherDay, today = '') {
+  const isToday = today && date === today;
+  const w = weatherDay?.weather;
+  const weatherHtml = w && (w.condition || w.temp) ? `
+    <div class="day-summary-weather">
+      ${w.condition ? `<span class="day-weather-cond">${esc(w.condition)}</span>` : ''}
+      ${w.temp      ? `<span class="day-weather-temp">${esc(w.temp)}</span>`      : ''}
+      ${w.pop       ? `<span class="day-weather-pop">☔ ${esc(w.pop)}</span>`      : ''}
+      ${w.clothing  ? `<span class="day-weather-clothing">💡 ${esc(w.clothing)}</span>` : ''}
+    </div>` : '';
+
+  return `
+    <div class="day-summary-header${isToday ? ' is-today-summary' : ''}">
+      <span class="day-summary-date">${esc(formatDate(date))}${isToday ? '<span class="today-badge">今</span>' : ''}</span>
+      ${weatherHtml}
+    </div>`;
 }
 
 function renderDayCard(day, dayIndex, segId, today = '') {
@@ -260,15 +293,6 @@ function renderDayCard(day, dayIndex, segId, today = '') {
     ? `<div class="day-transport">${TRANSPORT_ICONS[t.mode] || ''}${esc(t.from || '')} → ${esc(t.to || '')}${t.duration_hours ? ` · ${t.duration_hours}h` : ''}</div>`
     : '';
 
-  const w = day.weather;
-  const weatherHtml = w && (w.condition || w.temp) ? `
-    <div class="day-weather-row">
-      ${w.condition ? `<span class="day-weather-cond">${esc(w.condition)}</span>` : ''}
-      ${w.temp      ? `<span class="day-weather-temp">${esc(w.temp)}</span>`      : ''}
-      ${w.pop       ? `<span class="day-weather-pop">☔ ${esc(w.pop)}</span>`      : ''}
-      ${w.clothing  ? `<span class="day-weather-clothing">💡 ${esc(w.clothing)}</span>` : ''}
-    </div>` : '';
-
   const rawMapsUrl = hasLoc ? `https://www.google.com/maps/search/?api=1&query=${day.lat},${day.lng}` : null;
   const mapsHref   = rawMapsUrl ? esc(safeUrl(rawMapsUrl)) : null;
   const mapsLink   = mapsHref && mapsHref !== '#'
@@ -276,11 +300,9 @@ function renderDayCard(day, dayIndex, segId, today = '') {
     : '';
 
   const expandKey  = `${segId}:${dayIndex}`;
-  const hasDetail  = !!(weatherHtml || mapsLink);
   const detailOpen = expandedDays.has(expandKey);
-  const detailHtml = hasDetail ? `
+  const detailHtml = mapsLink ? `
     <div class="day-detail"${detailOpen ? '' : ' style="display:none"'}>
-      ${weatherHtml}
       ${mapsLink}
     </div>` : '';
 
@@ -297,7 +319,7 @@ function renderDayCard(day, dayIndex, segId, today = '') {
       </div>
       <div style="display:flex;align-items:center;gap:2px;flex-shrink:0">
         ${hasLoc ? '<div class="day-loc-dot" title="已標記座標"></div>' : ''}
-        ${hasDetail ? `<button class="btn btn-icon btn-sm day-expand-btn${detailOpen ? ' expanded' : ''}" title="展開詳情" aria-label="展開詳情">${ICON_CHEVRON}</button>` : ''}
+        ${mapsLink ? `<button class="btn btn-icon btn-sm day-expand-btn${detailOpen ? ' expanded' : ''}" title="展開詳情" aria-label="展開詳情">${ICON_CHEVRON}</button>` : ''}
         <button class="btn btn-icon btn-sm day-edit-btn" data-day-index="${dayIndex}" data-seg-id="${esc(segId)}" data-edit title="編輯日程" style="opacity:.5">${ICON_EDIT}</button>
       </div>
       ${detailHtml}
