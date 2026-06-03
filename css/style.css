@@ -49,7 +49,7 @@ button, input, select {
 #app.ready { display: flex !important; }
 
 #left-panel {
-  width: 400px;
+  width: 420px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -70,14 +70,34 @@ button, input, select {
   font-family: var(--font-body);
 }
 
+@media (min-width: 768px) {
+  #map {
+    inset: 10px 10px 10px 0;
+    border-radius: 12px;
+  }
+}
+
 @media (max-width: 767px) {
   #left-panel {
     position: fixed; top: 0; bottom: 0; left: 0;
+    width: 100vw;
     transform: translateX(-100%);
     transition: transform .3s cubic-bezier(.4,0,.2,1);
     z-index: 40;
   }
   #left-panel.panel-open { transform: translateX(0); }
+  .tab-bar {
+    order: 10;
+    border-bottom: none;
+    border-top: 1px solid var(--c-border);
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 20px 20px 0 0;
+    padding: 8px 12px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    box-shadow: 0 -4px 20px rgba(0,0,0,.07);
+  }
 }
 
 /* ── Panel Header ── */
@@ -131,6 +151,63 @@ button, input, select {
   transition: background .15s;
 }
 .place-dropdown li:hover { background: var(--c-row-hover); }
+
+/* ── Utility ── */
+.tech-grid {
+  background-image:
+    linear-gradient(var(--c-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--c-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.floating-nav {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.10);
+}
+.gear-checked { background: var(--c-accent-lt) !important; }
+.gear-checked .checklist-text { text-decoration: line-through; color: var(--c-muted-lt); }
+
+/* ── Day Tabs ── */
+.day-tabs-container {
+  display: flex;
+  gap: 5px;
+  padding: 7px 10px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+  scrollbar-width: none;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.day-tabs-container:empty { display: none; }
+.day-tabs-container::-webkit-scrollbar { display: none; }
+.day-tab-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; flex-shrink: 0; min-width: 48px;
+  padding: 5px 8px;
+  border: 1px solid var(--c-border);
+  border-radius: 8px;
+  background: var(--c-bg);
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.day-tab-btn:hover { border-color: var(--c-primary); background: var(--c-primary-light); }
+.day-tab-btn.active { background: var(--c-primary-light); border-color: var(--c-primary); }
+.day-tab-btn.is-today-tab { border-color: rgba(224,108,0,.4); background: var(--c-accent-lt); }
+.day-tab-num {
+  font-family: var(--font-display); font-size: 10px; font-weight: 700;
+  color: var(--c-muted); letter-spacing: .04em;
+}
+.day-tab-date {
+  font-family: var(--font-mono); font-size: 9px; color: var(--c-muted-lt); letter-spacing: .02em;
+}
+.day-tab-btn.active .day-tab-num { color: var(--c-primary-dark); }
+.day-tab-btn.active .day-tab-date { color: var(--c-primary); }
+.day-tab-btn.is-today-tab .day-tab-num { color: var(--c-accent); }
 
 /* ── Tab Bar ── */
 .tab-bar {
@@ -261,12 +338,14 @@ button, input, select {
 /* ── Day Card ── */
 .day-card {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 9px var(--pp);
   cursor: pointer;
   border-bottom: 1px solid var(--c-border);
   transition: background .15s;
   min-height: 44px;
+  align-items: flex-start;
 }
 .day-card:hover { background: var(--c-row-hover); }
 .day-card.is-transport { background: var(--c-bg); }
@@ -339,6 +418,41 @@ button, input, select {
   flex-shrink: 0;
   margin-top: 8px;
 }
+.day-expand-btn {
+  color: var(--c-muted-lt);
+  opacity: .6;
+  transition: opacity .15s, color .15s;
+}
+.day-expand-btn svg { transition: transform .2s; }
+.day-expand-btn.expanded svg { transform: rotate(180deg); }
+.day-card:hover .day-expand-btn { opacity: 1; }
+
+.day-detail {
+  flex: 0 0 100%; width: 100%;
+  padding: 8px 10px 6px 30px;
+  border-top: 1px dashed var(--c-border);
+  background: var(--c-bg);
+  border-radius: 0 0 var(--r-card) var(--r-card);
+}
+.day-weather-row {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px;
+}
+.day-weather-cond { font-size: 12px; color: var(--c-text-2); }
+.day-weather-temp {
+  font-family: var(--font-mono); font-size: 12px; color: var(--c-primary-dark);
+  font-weight: 500; letter-spacing: .03em;
+}
+.day-weather-pop { font-size: 11px; color: #3b82f6; }
+.day-weather-clothing { font-size: 11px; color: var(--c-muted); }
+.day-maps-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-family: var(--font-display); font-weight: 600;
+  color: var(--c-primary); text-decoration: none;
+  padding: 4px 10px; border: 1px solid rgba(11,127,165,.3);
+  border-radius: 6px; background: rgba(11,127,165,.05);
+  transition: background .15s, border-color .15s;
+}
+.day-maps-btn:hover { background: var(--c-primary-light); border-color: var(--c-primary); }
 
 /* ── Checklist (Todo / Packing) ── */
 .checklist-section { border-top: 1px solid var(--c-border); }

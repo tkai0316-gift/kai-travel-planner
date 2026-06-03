@@ -10,11 +10,12 @@ const q = id => document.getElementById(id);
 
 // ── Module state ──────────────────────────────────────────────────────────────
 let pendingEmail = '';
-let _todoComposing  = false;
-let _packComposing  = false;
-let _ideaComposing  = false;
-let _selectorOpen   = false;          // trip-selector dropdown state (truth lives here)
-let checklistAC     = new AbortController(); // cleaned up on every renderTimeline
+let _todoComposing   = false;
+let _packComposing   = false;
+let _ideaComposing   = false;
+let _selectorOpen    = false;          // trip-selector dropdown state (truth lives here)
+let _currentActiveDay = null;          // day tab 目前選中的日期
+let checklistAC      = new AbortController(); // cleaned up on every renderTimeline
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getActiveTrip() {
@@ -111,6 +112,7 @@ function renderActiveTrip() {
   const trip = allTrips.find(t => t.id === activeTripId) || null;
 
   ui.renderTimeline(trip);
+  ui.renderDayTabs(trip);
   ui.renderBudget(trip);
   ui.renderPrefs(preferences);
   ui.renderDataPanel(trips);
@@ -155,6 +157,7 @@ function bindAppEvents() {
       if (!li) return;
       _selectorOpen = false;
       tripSelList.style.display = 'none';
+      _currentActiveDay = null;
       setState({ activeTripId: li.dataset.tripId });
       ui.renderTripSelector(getState().trips, li.dataset.tripId);
       renderActiveTrip();
@@ -268,6 +271,29 @@ function bindAppEvents() {
     [SEL.tripModal, SEL.segModal, SEL.dayModal, SEL.confirmModal].forEach(id => {
       q(id)?.classList.remove('open');
     });
+  });
+
+  // Day tabs — event delegation on #panel-trips (stable across re-renders)
+  q('panel-trips')?.addEventListener('click', e => {
+    const btn = e.target.closest('.day-tab-btn');
+    if (!btn) return;
+    const date  = btn.dataset.tabDate;
+    const segId = btn.dataset.segId;
+    if (!date) return;
+
+    _currentActiveDay = date;
+    document.querySelectorAll('.day-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    if (segId) ui.ensureSegExpanded(segId);
+
+    const card = document.querySelector(`[data-day="${date}"]`);
+    if (card) {
+      setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+      const lat = parseFloat(card.dataset.lat);
+      const lng = parseFloat(card.dataset.lng);
+      if (!isNaN(lat) && !isNaN(lng)) mapMgr.flyToDay(lat, lng);
+    }
   });
 }
 

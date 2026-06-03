@@ -1,9 +1,12 @@
 import {
-  esc, TYPE_ICONS, TRANSPORT_ICONS, ICON_CHECK, ICON_GLOBE,
+  esc, safeUrl, TYPE_ICONS, TRANSPORT_ICONS, ICON_CHECK, ICON_GLOBE,
   formatDate, formatDateShort, formatCurrency,
 } from './utils.js';
 
 const collapsedSegs = new Set();
+const expandedDays  = new Set();  // key: `${segId}:${dayIndex}`
+
+const ICON_CHEVRON = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
 
 const STATUS_LABELS = { planning: '規劃中', ongoing: '進行中', completed: '已完成' };
 const STATUS_BADGE  = { planning: 'badge-planning', ongoing: 'badge-ongoing', completed: 'badge-completed' };
@@ -46,6 +49,42 @@ export function renderTripSelector(trips, activeTripId) {
   list.innerHTML = all.map(t =>
     `<li data-trip-id="${esc(t.id)}" class="${t.id === activeTripId ? 'active' : ''}">${esc(t.title)}</li>`
   ).join('');
+}
+
+/* ── Day Tabs ── */
+export function renderDayTabs(trip) {
+  const el = document.getElementById('day-tabs-container');
+  if (!el) return;
+  if (!trip) { el.innerHTML = ''; return; }
+
+  const allDays = [];
+  (trip.segments || []).forEach(seg => {
+    (seg.daily || []).forEach(day => {
+      if (day.date) allDays.push({ date: day.date, segId: seg.id });
+    });
+  });
+  allDays.sort((a, b) => a.date.localeCompare(b.date));
+  if (allDays.length === 0) { el.innerHTML = ''; return; }
+
+  const today = new Date().toISOString().slice(0, 10);
+  el.innerHTML = allDays.map((d, i) => {
+    const isToday = d.date === today;
+    return `<button class="day-tab-btn${isToday ? ' is-today-tab' : ''}" data-tab-date="${esc(d.date)}" data-seg-id="${esc(d.segId)}" type="button">
+      <span class="day-tab-num">Day ${i + 1}</span>
+      <span class="day-tab-date">${esc(d.date.slice(5))}</span>
+    </button>`;
+  }).join('');
+}
+
+/* ── Ensure segment is expanded (called from app.js day-tab click) ── */
+export function ensureSegExpanded(segId) {
+  collapsedSegs.delete(segId);
+  const block = document.querySelector(`.seg-block[data-seg-id="${esc(segId)}"]`);
+  if (!block) return;
+  const body  = block.querySelector('.seg-body');
+  const arrow = block.querySelector('.seg-arrow');
+  if (body)  body.style.display = 'block';
+  if (arrow) arrow.textContent = '▼';
 }
 
 /* ── Timeline ── */
@@ -162,6 +201,24 @@ export function renderTimeline(trip) {
     });
   });
 
+  el.querySelectorAll('.day-expand-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const card   = btn.closest('.day-card');
+      const detail = card?.querySelector('.day-detail');
+      if (!detail) return;
+      const isExpanded = detail.style.display !== 'none';
+      detail.style.display = isExpanded ? 'none' : 'block';
+      btn.classList.toggle('expanded', !isExpanded);
+      const key = `${card.dataset.segId}:${card.dataset.dayIndex}`;
+      if (isExpanded) expandedDays.delete(key); else expandedDays.add(key);
+    });
+  });
+
+  el.querySelectorAll('.day-detail').forEach(det => {
+    det.addEventListener('click', e => e.stopPropagation());
+  });
+
   setTimeout(() => {
     const todayCard = el.querySelector('.day-card.is-today');
     if (todayCard) todayCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -202,6 +259,31 @@ function renderDayCard(day, dayIndex, segId, today = '') {
   const transportHtml = t
     ? `<div class="day-transport">${TRANSPORT_ICONS[t.mode] || ''}${esc(t.from || '')} → ${esc(t.to || '')}${t.duration_hours ? ` · ${t.duration_hours}h` : ''}</div>`
     : '';
+
+  const w = day.weather;
+  const weatherHtml = w && (w.condition || w.temp) ? `
+    <div class="day-weather-row">
+      ${w.condition ? `<span class="day-weather-cond">${esc(w.condition)}</span>` : ''}
+      ${w.temp      ? `<span class="day-weather-temp">${esc(w.temp)}</span>`      : ''}
+      ${w.pop       ? `<span class="day-weather-pop">☔ ${esc(w.pop)}</span>`      : ''}
+      ${w.clothing  ? `<span class="day-weather-clothing">💡 ${esc(w.clothing)}</span>` : ''}
+    </div>` : '';
+
+  const rawMapsUrl = hasLoc ? `https://www.google.com/maps/search/?api=1&query=${day.lat},${day.lng}` : null;
+  const mapsHref   = rawMapsUrl ? esc(safeUrl(rawMapsUrl)) : null;
+  const mapsLink   = mapsHref && mapsHref !== '#'
+    ? `<a class="day-maps-btn" href="${mapsHref}" target="_blank" rel="noopener noreferrer">📍 Google 地圖</a>`
+    : '';
+
+  const expandKey  = `${segId}:${dayIndex}`;
+  const hasDetail  = !!(weatherHtml || mapsLink);
+  const detailOpen = expandedDays.has(expandKey);
+  const detailHtml = hasDetail ? `
+    <div class="day-detail"${detailOpen ? '' : ' style="display:none"'}>
+      ${weatherHtml}
+      ${mapsLink}
+    </div>` : '';
+
   return `
     <div data-day="${esc(day.date)}" data-lat="${day.lat ?? ''}" data-lng="${day.lng ?? ''}"
          data-day-index="${dayIndex}" data-seg-id="${esc(segId)}"
@@ -215,8 +297,10 @@ function renderDayCard(day, dayIndex, segId, today = '') {
       </div>
       <div style="display:flex;align-items:center;gap:2px;flex-shrink:0">
         ${hasLoc ? '<div class="day-loc-dot" title="已標記座標"></div>' : ''}
+        ${hasDetail ? `<button class="btn btn-icon btn-sm day-expand-btn${detailOpen ? ' expanded' : ''}" title="展開詳情" aria-label="展開詳情">${ICON_CHEVRON}</button>` : ''}
         <button class="btn btn-icon btn-sm day-edit-btn" data-day-index="${dayIndex}" data-seg-id="${esc(segId)}" data-edit title="編輯日程" style="opacity:.5">${ICON_EDIT}</button>
       </div>
+      ${detailHtml}
     </div>
   `;
 }
