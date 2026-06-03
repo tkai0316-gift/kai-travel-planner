@@ -603,8 +603,9 @@ export function renderDataPanel(trips = null) {
             <button class="idea-del-btn" data-idea-del="${esc(i.id)}" data-edit title="刪除">×</button>
           </div>`).join('')}
         ${ideas.length === 0 ? '<div style="font-size:12px;color:var(--c-muted-lt);padding:4px 0 8px">尚無構想，輸入目的地後按新增</div>' : ''}
-        <div class="checklist-add-row" data-edit style="margin-top:4px">
-          <input type="text" id="idea-add-input" class="checklist-add-input" placeholder="新增旅遊目的地或構想">
+        <div class="checklist-add-row" data-edit style="margin-top:4px;flex-wrap:wrap;gap:4px">
+          <input type="text" id="idea-add-input" class="checklist-add-input" placeholder="目的地或構想" style="flex:2;min-width:120px">
+          <input type="text" id="idea-notes-input" class="checklist-add-input" placeholder="備註（選填）" style="flex:3;min-width:160px">
           <button class="btn btn-link btn-sm" id="idea-add-btn" data-edit>新增</button>
         </div>
       </div>

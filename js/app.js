@@ -669,14 +669,16 @@ function bindDataPanelEvents() {
   });
 
   // Trip Ideas
-  const ideaAddBtn = q(SEL.ideaAddBtn);
-  const ideaInput  = q(SEL.ideaAddInput);
+  const ideaAddBtn    = q(SEL.ideaAddBtn);
+  const ideaInput     = q(SEL.ideaAddInput);
+  const ideaNotesInput = q(SEL.ideaNotesInput);
   if (ideaAddBtn) ideaAddBtn.addEventListener('click', async () => {
     const title = ideaInput?.value.trim();
     if (!title) return;
+    const notes = ideaNotesInput?.value.trim() || '';
     const { trips, user, isOnline } = getState();
     if (!isOnline) { showToast('離線中，無法新增', 'warn'); return; }
-    const newIdea = { id: generateId('idea'), title, notes: '' };
+    const newIdea = { id: generateId('idea'), title, notes };
     trips.trip_ideas = [...(trips.trip_ideas || []), newIdea];
     setState({ trips });
     if (user) {
@@ -685,6 +687,7 @@ function bindDataPanelEvents() {
     }
     saveCache(trips, getState().preferences);
     if (ideaInput) ideaInput.value = '';
+    if (ideaNotesInput) ideaNotesInput.value = '';
     ui.renderDataPanel(trips);
     bindDataPanelEvents();
   });

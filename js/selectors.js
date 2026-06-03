@@ -115,6 +115,7 @@ export const SEL = {
   copyShareBtn:    'copy-share-btn',
   ideaAddBtn:      'idea-add-btn',
   ideaAddInput:    'idea-add-input',
+  ideaNotesInput:  'idea-notes-input',
 
   // Prefs Edit
   peStyle:     'pe-style',
