@@ -102,7 +102,7 @@ function renderActiveTrip() {
   const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
   const trip = allTrips.find(t => t.id === activeTripId) || null;
 
-  ui.renderTimeline(trip);
+  ui.renderTimeline(trip, getState().weatherCache);
   ui.renderDayTabs(trip);
   ui.renderBudget(trip);
   ui.renderPrefs(preferences);
@@ -110,8 +110,46 @@ function renderActiveTrip() {
   bindChecklistEvents(trip);
   bindDataPanelEvents();
 
-  if (trip) mapMgr.renderTrip(trip);
-  else mapMgr.clearMap();
+  if (trip) {
+    mapMgr.renderTrip(trip);
+    loadWeather(trip);
+  } else {
+    mapMgr.clearMap();
+  }
+}
+
+async function loadWeather(trip) {
+  const today  = new Date().toISOString().slice(0, 10);
+  const cutoff = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
+
+  const locations = new Map();
+  for (const seg of (trip.segments || [])) {
+    for (const day of (seg.daily || [])) {
+      if (day.lat == null || day.lng == null) continue;
+      if (day.date < today || day.date > cutoff) continue;
+      const key = `${day.lat}_${day.lng}`;
+      if (!locations.has(key)) locations.set(key, { lat: day.lat, lng: day.lng });
+    }
+  }
+  if (locations.size === 0) return;
+
+  const existing = getState().weatherCache;
+  const toFetch  = [...locations.entries()].filter(([key]) => !existing[key]);
+  if (toFetch.length === 0) return;
+
+  const results = await Promise.allSettled(
+    toFetch.map(async ([key, { lat, lng }]) => ({ key, data: await api.fetchWeather(lat, lng) }))
+  );
+
+  const updated = { ...existing };
+  results.forEach(r => {
+    if (r.status === 'fulfilled' && r.value.data) updated[r.value.key] = r.value.data;
+  });
+  setState({ weatherCache: updated });
+
+  const { trips, activeTripId } = getState();
+  const active = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === activeTripId);
+  if (active?.id === trip.id) ui.renderTimeline(active, updated);
 }
 
 function initMap() {
@@ -484,7 +522,7 @@ function bindChecklistEvents(trip) {
       const id = btn.dataset.todoDel;
       trip.todo = (trip.todo || []).filter(t => t.id !== id);
       persistTrip(trip).then(ok => {
-        if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
+        if (ok) { ui.renderTimeline(trip, getState().weatherCache); bindChecklistEvents(trip); }
       });
     }, { signal });
   });
@@ -502,7 +540,7 @@ function bindChecklistEvents(trip) {
       const id = btn.dataset.packingDel;
       trip.packing = (trip.packing || []).filter(p => p.id !== id);
       persistTrip(trip).then(ok => {
-        if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
+        if (ok) { ui.renderTimeline(trip, getState().weatherCache); bindChecklistEvents(trip); }
       });
     }, { signal });
   });
@@ -513,7 +551,7 @@ function bindChecklistEvents(trip) {
     if (!text) return;
     trip.todo = [...(trip.todo || []), { id: generateId('todo'), text, done: false }];
     persistTrip(trip).then(ok => {
-      if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
+      if (ok) { ui.renderTimeline(trip, getState().weatherCache); bindChecklistEvents(trip); }
       else trip.todo.pop();
     });
   }, { signal });
@@ -535,7 +573,7 @@ function bindChecklistEvents(trip) {
     const category = catInput?.value.trim() || '其他';
     trip.packing = [...(trip.packing || []), { id: generateId('pack'), text, category, done: false }];
     persistTrip(trip).then(ok => {
-      if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
+      if (ok) { ui.renderTimeline(trip, getState().weatherCache); bindChecklistEvents(trip); }
       else trip.packing.pop();
     });
   }, { signal });
@@ -556,7 +594,7 @@ async function toggleTodo(trip, id) {
   item.done = !item.done;
   const ok = await persistTrip(trip);
   if (!ok) item.done = !item.done;
-  ui.renderTimeline(trip);
+  ui.renderTimeline(trip, getState().weatherCache);
   bindChecklistEvents(trip);
 }
 
@@ -566,7 +604,7 @@ async function togglePacking(trip, id) {
   item.done = !item.done;
   const ok = await persistTrip(trip);
   if (!ok) item.done = !item.done;
-  ui.renderTimeline(trip);
+  ui.renderTimeline(trip, getState().weatherCache);
   bindChecklistEvents(trip);
 }
 

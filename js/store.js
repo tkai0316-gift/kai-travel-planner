@@ -9,6 +9,7 @@ const state = {
   isOnline: navigator.onLine,
   activeTab: 'trips',
   activeTripId: null,
+  weatherCache: {},
 };
 
 export function getState() { return state; }

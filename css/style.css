@@ -777,6 +777,8 @@ button, input, select {
 
 /* ── Prefs Edit ── */
 .pref-edit-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.day-weather { font-size: 11px; color: var(--c-muted-lt); margin-top: 2px; }
+.today-weather { font-size: 11px; color: var(--c-muted-lt); margin-left: 6px; }
 .cs { position: relative; flex: 1; }
 .cs-btn { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 12px; font-family: inherit; border: 1.5px solid var(--c-border); border-radius: var(--r-btn); padding: 4px 8px; background: var(--c-surface); color: var(--c-text); cursor: pointer; }
 .cs.open .cs-btn { border-color: var(--c-primary); }

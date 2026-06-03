@@ -79,3 +79,30 @@ export async function deleteShare(shareId) {
   const res = await fetch(`${WORKER_URL}/api/share/${shareId}`, { method: 'DELETE' });
   if (!res.ok && res.status !== 404) throw new Error('撤銷失敗');
 }
+
+const WMO_ICON = {
+  0: '☀️', 1: '🌤', 2: '⛅', 3: '☁️',
+  45: '🌫', 48: '🌫',
+  51: '🌦', 53: '🌦', 55: '🌦',
+  61: '🌧', 63: '🌧', 65: '🌧',
+  71: '🌨', 73: '🌨', 75: '🌨',
+  80: '🌦', 81: '🌧', 82: '🌧',
+  95: '⛈', 96: '⛈', 99: '⛈',
+};
+
+export async function fetchWeather(lat, lng) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=16`;
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const { daily } = await res.json();
+  const result = {};
+  daily.time.forEach((date, i) => {
+    result[date] = {
+      icon:   WMO_ICON[daily.weather_code[i]] ?? '🌡',
+      max:    Math.round(daily.temperature_2m_max[i]),
+      min:    Math.round(daily.temperature_2m_min[i]),
+      precip: daily.precipitation_probability_max[i] ?? null,
+    };
+  });
+  return result;
+}

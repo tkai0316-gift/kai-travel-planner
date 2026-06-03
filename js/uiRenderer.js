@@ -94,7 +94,7 @@ export function ensureSegExpanded(segId) {
 }
 
 /* ── Timeline ── */
-export function renderTimeline(trip) {
+export function renderTimeline(trip, weatherCache = {}) {
   const el = document.getElementById('timeline-content');
   if (!el) return;
 
@@ -143,15 +143,20 @@ export function renderTimeline(trip) {
           <span class="today-summary-title">今日行程</span>
           <span class="today-summary-day">第 ${dayNum} 天</span>
         </div>
-        ${todayItems.map(d => `
+        ${todayItems.map(d => {
+          const wk = d.lat != null && d.lng != null ? `${d.lat}_${d.lng}` : null;
+          const w  = wk && weatherCache[wk]?.[today];
+          const wHtml = w ? `<span class="today-weather">${w.icon} ${w.max}°/${w.min}°${w.precip != null ? ` 💧${w.precip}%` : ''}</span>` : '';
+          return `
           <div class="today-summary-item">
             <span class="day-icon day-icon-${esc(d.type || 'sightseeing')}">${TYPE_ICONS[d.type] || TYPE_ICONS.sightseeing}</span>
             <div class="today-summary-body">
-              <div class="today-summary-item-title">${esc(d.title || '')}</div>
+              <div class="today-summary-item-title">${esc(d.title || '')}${wHtml}</div>
               ${d.note ? `<div class="today-summary-item-note">${esc(d.note)}</div>` : ''}
             </div>
             <span class="today-summary-seg" style="color:${esc(d._segColor)}">${esc(d._segName)}</span>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>`;
     }
   }
@@ -178,7 +183,7 @@ export function renderTimeline(trip) {
       ${trip.notes ? `<div class="trip-notes">${esc(trip.notes)}</div>` : ''}
     </div>
     ${todaySummaryHtml}
-    <div id="segments-container">${(trip.segments || []).map(seg => renderSegment(seg, today)).join('')}</div>
+    <div id="segments-container">${(trip.segments || []).map(seg => renderSegment(seg, today, weatherCache)).join('')}</div>
     ${renderTodoPacking(trip)}
   `;
 
@@ -231,12 +236,12 @@ export function renderTimeline(trip) {
   }, 150);
 }
 
-function renderSegment(seg, today = '') {
+function renderSegment(seg, today = '', weatherCache = {}) {
   const color = esc(seg.color || '#64748b');
   const days  = seg.daily || [];
   const isCollapsed = collapsedSegs.has(seg.id);
 
-  const bodyHtml = days.map((day, i) => renderDayCard(day, i, seg.id, today)).join('');
+  const bodyHtml = days.map((day, i) => renderDayCard(day, i, seg.id, today, weatherCache)).join('');
 
   return `
     <div class="seg-block" data-seg-id="${esc(seg.id)}">
@@ -259,7 +264,7 @@ function renderSegment(seg, today = '') {
   `;
 }
 
-function renderDayCard(day, dayIndex, segId, today = '') {
+function renderDayCard(day, dayIndex, segId, today = '', weatherCache = {}) {
   const isTransport = day.type === 'transport';
   const isToday = today && day.date === today;
   const hasLoc = day.lat != null && day.lng != null;
@@ -273,6 +278,12 @@ function renderDayCard(day, dayIndex, segId, today = '') {
   const mapsHref   = rawMapsUrl ? esc(safeUrl(rawMapsUrl)) : null;
   const mapsLink   = mapsHref && mapsHref !== '#'
     ? `<a class="day-maps-btn" href="${mapsHref}" target="_blank" rel="noopener noreferrer">📍 Google 地圖</a>`
+    : '';
+
+  const wKey = hasLoc ? `${day.lat}_${day.lng}` : null;
+  const w    = wKey ? weatherCache[wKey]?.[day.date] : null;
+  const weatherHtml = w
+    ? `<div class="day-weather">${w.icon} ${w.max}°/${w.min}°${w.precip != null ? ` 💧${w.precip}%` : ''}</div>`
     : '';
 
   const expandKey  = `${segId}:${dayIndex}`;
@@ -290,6 +301,7 @@ function renderDayCard(day, dayIndex, segId, today = '') {
       <div class="day-body">
         <div class="day-date">${esc(formatDate(day.date))}${isToday ? '<span class="today-badge">今</span>' : ''}</div>
         <div class="day-title">${esc(day.title || '')}</div>
+        ${weatherHtml}
         ${transportHtml}
         ${day.note ? `<div class="day-note">${esc(day.note)}</div>` : ''}
       </div>
