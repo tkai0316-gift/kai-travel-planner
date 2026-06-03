@@ -92,10 +92,10 @@ const WMO_ICON = {
 
 export async function fetchExchangeRates(base = 'TWD') {
   try {
-    const res = await fetch(`https://api.frankfurter.app/latest?from=${encodeURIComponent(base)}`);
+    const res = await fetch(`https://open.er-api.com/v6/latest/${encodeURIComponent(base)}`);
     if (!res.ok) return null;
     const json = await res.json();
-    return json.rates ?? null;
+    return json.result === 'success' ? json.rates : null;
   } catch { return null; }
 }
 

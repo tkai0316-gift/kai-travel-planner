@@ -6,6 +6,17 @@ import {
 const collapsedSegs = new Set();
 const expandedDays  = new Set();  // key: `${segId}:${dayIndex}`
 
+const CURRENCIES = [
+  ['TWD','台幣'],['USD','美元'],['JPY','日圓'],['EUR','歐元'],['GBP','英鎊'],
+  ['HKD','港幣'],['SGD','新幣'],['KRW','韓元'],['AUD','澳幣'],['CNY','人民幣'],
+  ['THB','泰銖'],['MYR','馬幣'],['IDR','印尼盾'],['PHP','披索'],['VND','越南盾'],
+  ['CAD','加幣'],['CHF','瑞士法郎'],
+];
+function currencySelect(id, selected = 'TWD', cls = '') {
+  const opts = CURRENCIES.map(([c, n]) => `<option value="${c}"${c === selected ? ' selected' : ''}>${c} ${n}</option>`).join('');
+  return `<select id="${id}"${cls ? ` class="${cls}"` : ''}>${opts}</select>`;
+}
+
 const ICON_CHEVRON = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
 
 const STATUS_LABELS = { planning: '規劃中', ongoing: '進行中', completed: '已完成' };
@@ -493,7 +504,7 @@ export function renderExpenseForm(trip, exp = null) {
       </div>
       <div class="expense-form-row">
         <input type="number" id="ef-amount" value="${exp ? exp.amount : ''}" placeholder="金額" min="0">
-        <input type="text" id="ef-currency" value="${esc(currency)}" placeholder="幣別" style="width:70px;flex:none">
+        ${currencySelect('ef-currency', currency)}
       </div>
       ${segments.length ? `<select id="ef-segment"><option value="">（不指定分段）</option>${segments.map(s => `<option value="${esc(s.id)}"${exp?.segment_id === s.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select>` : ''}
       <input type="text" id="ef-note" value="${exp ? esc(exp.note || '') : ''}" placeholder="備註（選填）">
@@ -708,7 +719,7 @@ export function renderTripModal(trip) {
       </div>
       <div class="form-row">
         <label class="form-label">幣別</label>
-        <input class="form-input" id="tm-currency" maxlength="5" value="${esc(t.base_currency || 'TWD')}">
+        ${currencySelect('tm-currency', t.base_currency || 'TWD', 'form-input')}
       </div>
     </div>
     <div class="form-row">
