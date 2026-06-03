@@ -63,7 +63,7 @@ button, input, select {
 #map-container { flex: 1; position: relative; background: #1C2820; }
 #map { position: absolute; inset: 0; }
 .maplibregl-canvas { outline: none; }
-.maplibregl-ctrl-bottom-left { bottom: 14px; }
+.maplibregl-ctrl-bottom-left { bottom: 14px; flex-direction: row; align-items: center; gap: 4px; }
 .maplibregl-popup-content {
   border-radius: var(--r-card);
   font-size: 13px;
