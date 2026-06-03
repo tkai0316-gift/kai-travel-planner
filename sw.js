@@ -1,4 +1,4 @@
-const CACHE = 'kai-travel-v3';
+const CACHE = 'kai-travel-v4';
 const SHELL = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/utils.js', '/js/store.js', '/js/api.js', '/js/mapManager.js', '/js/uiRenderer.js', '/manifest.json'];
 
 self.addEventListener('install', e => {
