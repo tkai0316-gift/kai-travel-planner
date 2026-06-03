@@ -762,7 +762,9 @@ function openTripModal(trip) {
   const tripId = trip?.id || null;
 
   const overlay = q(SEL.tripModal);
-  overlay.onclick = e => { if (e.target === overlay) closeTripModal(); };
+  let _tripDownOnOverlay = false;
+  overlay.onpointerdown = e => { _tripDownOnOverlay = e.target === overlay; };
+  overlay.onclick = e => { if (e.target === overlay && _tripDownOnOverlay) closeTripModal(); };
   q(SEL.tripModalClose).onclick = closeTripModal;
   q(SEL.tmCancel).onclick = closeTripModal;
   q(SEL.tmSave).onclick = () => saveTripFromModal(tripId);
@@ -846,7 +848,9 @@ function openSegModal(seg, tripId) {
   const segId = seg?.id || null;
 
   const overlay = q(SEL.segModal);
-  overlay.onclick = e => { if (e.target === overlay) closeSegModal(); };
+  let _segDownOnOverlay = false;
+  overlay.onpointerdown = e => { _segDownOnOverlay = e.target === overlay; };
+  overlay.onclick = e => { if (e.target === overlay && _segDownOnOverlay) closeSegModal(); };
   q(SEL.segModalClose).onclick = closeSegModal;
   q(SEL.smCancel).onclick = closeSegModal;
   q(SEL.smSave).onclick = () => saveSegFromModal(segId, tripId);
@@ -942,7 +946,9 @@ function openDayModal(day, segId, tripId, dayIndex = -1) {
   ui.renderDayModal(day, seg?.start_date || '', seg?.end_date || '');
 
   const overlay = q(SEL.dayModal);
-  overlay.onclick = e => { if (e.target === overlay) closeDayModal(); };
+  let _dayDownOnOverlay = false;
+  overlay.onpointerdown = e => { _dayDownOnOverlay = e.target === overlay; };
+  overlay.onclick = e => { if (e.target === overlay && _dayDownOnOverlay) closeDayModal(); };
   q(SEL.dayModalClose).onclick = closeDayModal;
   q(SEL.dmCancel).onclick = closeDayModal;
   q(SEL.dmSave).onclick = () => saveDayFromModal(dayIndex, segId, tripId);
