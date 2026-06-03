@@ -410,7 +410,10 @@ export function renderBudget(trip, rates = null) {
   el.innerHTML = `
     <div style="padding:var(--pp);display:flex;flex-direction:column;gap:16px">
       <div class="budget-summary">
-        <div class="section-lbl">預算使用</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="section-lbl">預算使用</div>
+          <a href="${esc(safeUrl(`https://www.xe.com/currencytables/?from=${base}`))}" target="_blank" rel="noopener noreferrer" class="budget-rate-link">查看匯率 ↗</a>
+        </div>
         <div class="budget-amount-row">
           <span class="budget-amount">${esc(formatCurrency(total, base))}</span>
           ${budget ? `<span class="budget-total-lbl">/ ${esc(formatCurrency(budget, base))}</span>` : ''}

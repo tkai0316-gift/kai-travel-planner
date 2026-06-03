@@ -623,6 +623,8 @@ button, input, select {
 .budget-bar-fill.over { background: var(--c-accent); }
 .budget-pct { font-family: var(--font-mono); font-size: 10px; color: var(--c-muted-lt); margin-top: 4px; letter-spacing: .03em; }
 .budget-converted-note { font-size: 10px; color: var(--c-muted-lt); margin-top: 2px; }
+.budget-rate-link { font-size: 11px; color: var(--c-muted-lt); text-decoration: none; }
+.budget-rate-link:hover { color: var(--c-primary); }
 .chart-wrap { position: relative; height: 200px; }
 @media (min-width: 768px) { .chart-wrap { height: 260px; } }
 
