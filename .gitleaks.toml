@@ -1,0 +1,10 @@
+title = "kai-travel-planner gitleaks config"
+
+[allowlist]
+description = "已知安全的公開識別碼（不是真正的 secret）"
+regexes = [
+  # Supabase anon key（sb_publishable_ 開頭，設計公開，防線是 RLS）
+  '''sb_publishable_[A-Za-z0-9_\-]+''',
+  # Supabase anon JWT（payload 含 iss:supabase + role:anon，設計公開）
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSI''',
+]
