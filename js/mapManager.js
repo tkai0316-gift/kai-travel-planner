@@ -24,7 +24,7 @@ export function init(containerId) {
     positionOptions: { enableHighAccuracy: true },
     trackUserLocation: false,
     showAccuracyCircle: false,
-  }), 'bottom-right');
+  }), 'bottom-left');
 
   map.on('error', () => {
     const container = document.getElementById(containerId);
