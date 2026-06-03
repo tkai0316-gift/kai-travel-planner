@@ -462,7 +462,7 @@ export function renderBudget(trip, rates = null) {
           labels: Object.keys(byCategory),
           datasets: [{ data: Object.values(byCategory), backgroundColor: ['#f59e0b','#3b82f6','#22c55e','#a855f7','#ef4444','#0ea5e9','#f97316','#64748b'] }],
         },
-        options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' } } } } },
+        options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11, family: 'Noto Sans TC' } } } } },
       });
     }, 50);
   }

@@ -324,7 +324,7 @@ button, input, select {
   transition: background .15s;
   border-bottom: 1px solid var(--c-border);
 }
-.seg-header:hover { background: #e8eaf0; }
+.seg-header:hover { background: var(--c-row-hover); }
 .seg-arrow { font-size: 10px; color: var(--c-muted-lt); flex-shrink: 0; }
 .seg-info { flex: 1; min-width: 0; }
 .seg-name {
@@ -359,7 +359,7 @@ button, input, select {
 }
 .day-card:hover { background: var(--c-row-hover); }
 .day-card.is-transport { background: var(--c-bg); }
-.day-card.is-transport:hover { background: #e8eaf0; }
+.day-card.is-transport:hover { background: var(--c-row-hover); }
 .day-card.is-selected { outline: 2px solid var(--c-primary); outline-offset: -2px; }
 .day-card.is-today {
   background: var(--c-accent-lt);
@@ -458,8 +458,8 @@ button, input, select {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 11px; font-family: var(--font-display); font-weight: 600;
   color: var(--c-primary); text-decoration: none;
-  padding: 4px 10px; border: 1px solid rgba(11,127,165,.3);
-  border-radius: 6px; background: rgba(11,127,165,.05);
+  padding: 4px 10px; border: 1px solid rgba(44,110,138,.3);
+  border-radius: 6px; background: rgba(44,110,138,.05);
   transition: background .15s, border-color .15s;
 }
 .day-maps-btn:hover { background: var(--c-primary-light); border-color: var(--c-primary); }
@@ -818,7 +818,7 @@ button, input, select {
 }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
 .btn-primary { background: var(--c-primary); color: white; }
-.btn-primary:hover:not(:disabled) { background: var(--c-primary-dark); box-shadow: 0 2px 8px rgba(11,127,165,.3); }
+.btn-primary:hover:not(:disabled) { background: var(--c-primary-dark); box-shadow: 0 2px 8px rgba(44,110,138,.3); }
 .btn-ghost { background: var(--c-bg); color: var(--c-text-2); border: 1px solid var(--c-border); }
 .btn-ghost:hover:not(:disabled) { background: var(--c-row-hover); }
 .btn-success { background: #ecfdf5; color: #166534; }
@@ -1049,7 +1049,7 @@ button, input, select {
   transition: background .15s, box-shadow .15s;
   letter-spacing: .03em;
 }
-.auth-btn:hover { background: #086074; box-shadow: 0 4px 16px rgba(9,105,138,.35); }
+.auth-btn:hover { background: #163e52; box-shadow: 0 4px 16px rgba(44,110,138,.35); }
 .auth-btn:disabled { opacity: .6; cursor: not-allowed; }
 .auth-error {
   display: none;
