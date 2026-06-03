@@ -46,8 +46,8 @@ async function init() {
 
   if (user) {
     ui.hideAuthOverlay();
-    await loadData();
     initMap();
+    await loadData();
     bindAppEvents();
   }
 }
