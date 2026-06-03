@@ -9,7 +9,6 @@ const state = {
   isOnline: navigator.onLine,
   activeTab: 'trips',
   activeTripId: null,
-  highlightedDate: null,
 };
 
 export function getState() { return state; }
@@ -52,6 +51,3 @@ export function loadCache() {
   } catch { return null; }
 }
 
-export function clearCache() {
-  localStorage.removeItem(CACHE_KEY);
-}

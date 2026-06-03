@@ -14,7 +14,6 @@ let _todoComposing   = false;
 let _packComposing   = false;
 let _ideaComposing   = false;
 let _selectorOpen    = false;          // trip-selector dropdown state (truth lives here)
-let _currentActiveDay = null;          // day tab 目前選中的日期
 let checklistAC      = new AbortController(); // cleaned up on every renderTimeline
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -119,7 +118,6 @@ function initMap() {
   mapMgr.init(SEL.map);
   mapMgr.onMarkerClick((date) => {
     ui.scrollTimelineToDate(date);
-    setState({ highlightedDate: date });
   });
 }
 
@@ -149,7 +147,6 @@ function bindAppEvents() {
       if (!li) return;
       _selectorOpen = false;
       tripSelList.style.display = 'none';
-      _currentActiveDay = null;
       setState({ activeTripId: li.dataset.tripId });
       ui.renderTripSelector(getState().trips, li.dataset.tripId);
       renderActiveTrip();
@@ -298,7 +295,6 @@ function bindAppEvents() {
     const segId = btn.dataset.segId;
     if (!date) return;
 
-    _currentActiveDay = date;
     document.querySelectorAll('.day-tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
 

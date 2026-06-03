@@ -1,7 +1,3 @@
-export const TYPE_LABELS = {
-  sightseeing: '觀光', transport: '交通', trekking: '健行', diving: '潛水', rest: '休息',
-};
-
 const svgIcon = (path, size = 20) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
 
@@ -24,8 +20,6 @@ export const TRANSPORT_ICONS = {
 
 export const ICON_CHECK    = svgIcon('<polyline points="20 6 9 17 4 12"/>', 10);
 export const ICON_GLOBE    = svgIcon('<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', 16);
-export const ICON_MAP_PIN  = svgIcon('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>', 40);
-export const ICON_MENU     = svgIcon('<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>', 22);
 
 export function esc(str) {
   if (str == null) return '';
