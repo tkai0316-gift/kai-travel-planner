@@ -15,20 +15,17 @@ self.addEventListener('fetch', e => {
   // Pass through: non-same-origin (Supabase, CDN, MapLibre tiles)
   if (url.origin !== self.location.origin) return;
 
-  // Network-first: API calls and share routes
+  // Pass through: API calls
   if (url.pathname.startsWith('/api/')) {
     e.respondWith(fetch(e.request).catch(() => new Response(JSON.stringify({ error: 'offline' }), { status: 503, headers: { 'Content-Type': 'application/json' } })));
     return;
   }
 
-  // Cache-first: app shell
+  // Network-first: always fetch fresh when online, fall back to cache when offline
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(resp => {
-        if (resp.ok) caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
-        return resp;
-      });
-    })
+    fetch(e.request).then(resp => {
+      if (resp.ok) caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
+      return resp;
+    }).catch(() => caches.match(e.request))
   );
 });
