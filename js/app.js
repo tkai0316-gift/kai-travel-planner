@@ -255,8 +255,16 @@ function bindAppEvents() {
     const delBtn = e.target.closest('.expense-del-btn');
     if (delBtn) {
       const expId = delBtn.dataset.expenseId;
-      trip.expenses = (trip.expenses || []).filter(ex => ex.id !== expId);
-      persistTrip(trip).then(ok => { if (ok) ui.renderBudget(trip, getRates(trip)); });
+      const exp = (trip.expenses || []).find(ex => ex.id === expId);
+      openConfirm({
+        title: '刪除花費',
+        message: `確定要刪除「${exp?.category || '這筆花費'}${exp?.note ? `（${exp.note}）` : ''}」？`,
+        okLabel: '刪除',
+        onConfirm: () => {
+          trip.expenses = (trip.expenses || []).filter(ex => ex.id !== expId);
+          persistTrip(trip).then(ok => { if (ok) ui.renderBudget(trip, getRates(trip)); });
+        },
+      });
     }
   });
 
