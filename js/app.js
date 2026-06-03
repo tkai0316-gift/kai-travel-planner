@@ -3,18 +3,27 @@ import * as api from './api.js';
 import * as mapMgr from './mapManager.js';
 import * as ui from './uiRenderer.js';
 import { showToast, generateId, esc, ICON_GLOBE, openConfirm } from './utils.js';
+import { SEL } from './selectors.js';
 
+// ── DOM helper ────────────────────────────────────────────────────────────────
+const q = id => document.getElementById(id);
+
+// ── Module state ──────────────────────────────────────────────────────────────
+let pendingEmail = '';
+let _todoComposing  = false;
+let _packComposing  = false;
+let _ideaComposing  = false;
+let _selectorOpen   = false;          // trip-selector dropdown state (truth lives here)
+let checklistAC     = new AbortController(); // cleaned up on every renderTimeline
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getActiveTrip() {
   const { trips, activeTripId } = getState();
   const all = [...(trips.current_trips || []), ...(trips.past_trips || [])];
   return all.find(t => t.id === activeTripId) || null;
 }
 
-let pendingEmail = '';
-let _todoComposing = false;
-let _packComposing = false;
-let _ideaComposing = false;
-
+// ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   const IS_DEV_BYPASS =
     window.location.hostname !== 'kai-travel-planner.pages.dev' &&
@@ -50,6 +59,7 @@ async function init() {
   }
 }
 
+// ── Data loading ──────────────────────────────────────────────────────────────
 async function loadData() {
   const { user, isOnline } = getState();
   if (!user) {
@@ -112,46 +122,60 @@ function renderActiveTrip() {
 }
 
 function initMap() {
-  mapMgr.init('map');
+  mapMgr.init(SEL.map);
   mapMgr.onMarkerClick((date) => {
     ui.scrollTimelineToDate(date);
     setState({ highlightedDate: date });
   });
 }
 
+// ── App-level event bindings (called once after login) ────────────────────────
 function bindAppEvents() {
-  ['trips', 'budget', 'prefs', 'data'].forEach(tab => {
-    const btn = document.getElementById(`tab-${tab}`);
-    if (btn) btn.addEventListener('click', () => { setState({ activeTab: tab }); ui.setActiveTab(tab); });
+  // Tabs
+  [
+    [SEL.tabTrips,  'trips'],
+    [SEL.tabBudget, 'budget'],
+    [SEL.tabPrefs,  'prefs'],
+    [SEL.tabData,   'data'],
+  ].forEach(([id, tab]) => {
+    q(id)?.addEventListener('click', () => { setState({ activeTab: tab }); ui.setActiveTab(tab); });
   });
 
-  const tripSelBtn = document.getElementById('trip-selector-btn');
-  const tripSelList = document.getElementById('trip-selector-list');
+  // Trip selector dropdown — state tracked in _selectorOpen, not from DOM
+  const tripSelBtn  = q(SEL.tripSelectorBtn);
+  const tripSelList = q(SEL.tripSelectorList);
   if (tripSelBtn && tripSelList) {
     tripSelBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = tripSelList.style.display !== 'none';
-      tripSelList.style.display = isOpen ? 'none' : 'block';
+      _selectorOpen = !_selectorOpen;
+      tripSelList.style.display = _selectorOpen ? 'block' : 'none';
     });
     tripSelList.addEventListener('click', (e) => {
       const li = e.target.closest('li[data-trip-id]');
       if (!li) return;
+      _selectorOpen = false;
       tripSelList.style.display = 'none';
       setState({ activeTripId: li.dataset.tripId });
       ui.renderTripSelector(getState().trips, li.dataset.tripId);
       renderActiveTrip();
     });
-    document.addEventListener('click', () => { tripSelList.style.display = 'none'; });
+    document.addEventListener('click', () => {
+      if (!_selectorOpen) return;
+      _selectorOpen = false;
+      tripSelList.style.display = 'none';
+    });
   }
 
+  // Day click → map fly-to
   window.addEventListener('kai-travel:day-click', (e) => {
     const { lat, lng } = e.detail;
     if (lat != null && lng != null) mapMgr.flyToDay(lat, lng);
   });
 
-  const toggleBtn = document.getElementById('panel-toggle');
-  const leftPanel = document.getElementById('left-panel');
-  const ICON_MENU = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
+  // Mobile panel toggle
+  const toggleBtn = q(SEL.panelToggle);
+  const leftPanel = q(SEL.leftPanel);
+  const ICON_MENU  = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>`;
   const ICON_CLOSE = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   if (toggleBtn && leftPanel) {
     toggleBtn.addEventListener('click', () => {
@@ -160,14 +184,14 @@ function bindAppEvents() {
     });
   }
 
-  const signOutBtn = document.getElementById('signout-btn');
-  if (signOutBtn) signOutBtn.addEventListener('click', async () => {
+  // Sign out
+  q(SEL.signoutBtn)?.addEventListener('click', async () => {
     await api.signOut();
     location.reload();
   });
 
-  /* ── Budget event delegation (bound once) ── */
-  document.getElementById('budget-content')?.addEventListener('click', e => {
+  // Budget — event delegation (bound once)
+  q(SEL.budgetContent)?.addEventListener('click', e => {
     const trip = getActiveTrip();
     if (!trip) return;
     if (e.target.id === 'add-expense-btn' || e.target.closest('#add-expense-btn')) {
@@ -189,8 +213,8 @@ function bindAppEvents() {
     }
   });
 
-  /* ── Data panel delegation (bound once) ── */
-  document.getElementById('data-content')?.addEventListener('click', async e => {
+  // Data panel idea-delete — event delegation (bound once)
+  q(SEL.dataContent)?.addEventListener('click', async e => {
     const delBtn = e.target.closest('[data-idea-del]');
     if (!delBtn) return;
     const { trips, user, isOnline } = getState();
@@ -204,7 +228,8 @@ function bindAppEvents() {
     bindDataPanelEvents();
   });
 
-  document.getElementById('panel-prefs')?.addEventListener('click', e => {
+  // Prefs edit button
+  q(SEL.panelPrefs)?.addEventListener('click', e => {
     if (e.target.id === 'prefs-edit-btn') {
       const { preferences } = getState();
       ui.renderPrefsEdit(preferences);
@@ -212,7 +237,8 @@ function bindAppEvents() {
     }
   });
 
-  document.getElementById('timeline-content')?.addEventListener('click', e => {
+  // Timeline — event delegation (bound once)
+  q(SEL.timelineContent)?.addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (!btn) return;
     const { activeTripId } = getState();
@@ -236,16 +262,16 @@ function bindAppEvents() {
     }
   });
 
+  // ESC closes any open modal
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    ['trip-modal', 'seg-modal', 'day-modal', 'confirm-modal'].forEach(id => {
-      document.getElementById(id)?.classList.remove('open');
+    [SEL.tripModal, SEL.segModal, SEL.dayModal, SEL.confirmModal].forEach(id => {
+      q(id)?.classList.remove('open');
     });
   });
 }
 
-/* ── Checklist (Todo / Packing) ── */
-/* ── Prefs Edit ── */
+// ── Prefs Edit ────────────────────────────────────────────────────────────────
 function toArr(val) {
   if (Array.isArray(val)) return [...val];
   if (val && typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
@@ -261,7 +287,7 @@ function makeTagManager(wrapId, arr) {
     else if (input) input.value = '';
   }
   function render() {
-    const wrap = document.getElementById(wrapId);
+    const wrap = q(wrapId);
     if (!wrap) return;
     wrap.innerHTML = arr.map((t, i) =>
       `<span class="tag-chip">${esc(t)}<button type="button" class="tag-rm" data-i="${i}">×</button></span>`
@@ -281,11 +307,11 @@ function bindPrefsEditEvents(initPrefs) {
   const ints  = toArr(initPrefs?.interests);
   const bl    = [...(initPrefs?.bucket_list || [])];
 
-  makeTagManager('pe-lang-wrap', langs);
-  makeTagManager('pe-int-wrap',  ints);
+  makeTagManager(SEL.peLangWrap, langs);
+  makeTagManager(SEL.peIntWrap,  ints);
 
   function renderBl() {
-    const list = document.getElementById('pe-bl-list');
+    const list = q(SEL.peBlList);
     if (!list) return;
     list.innerHTML = bl.length
       ? bl.map((b, i) => `
@@ -304,8 +330,8 @@ function bindPrefsEditEvents(initPrefs) {
   }
   renderBl();
 
-  document.getElementById('pe-bl-add')?.addEventListener('click', () => {
-    const form = document.getElementById('pe-bl-form');
+  q(SEL.peBlAdd)?.addEventListener('click', () => {
+    const form = q(SEL.peBlForm);
     if (!form || form.dataset.open === '1') return;
     form.dataset.open = '1';
     form.style.cssText = 'display:block;margin-top:4px';
@@ -313,39 +339,39 @@ function bindPrefsEditEvents(initPrefs) {
       <div class="bucket-item" style="align-items:flex-start;gap:6px">
         <span class="bucket-icon" style="margin-top:6px">${ICON_GLOBE}</span>
         <div style="flex:1;display:flex;flex-direction:column;gap:6px">
-          <input id="pe-bl-dest"  class="pref-input" placeholder="目的地" maxlength="80">
-          <input id="pe-bl-notes" class="pref-input" placeholder="備註（選填）" maxlength="200">
+          <input id="${SEL.peBlDest}"  class="pref-input" placeholder="目的地" maxlength="80">
+          <input id="${SEL.peBlNotes}" class="pref-input" placeholder="備註（選填）" maxlength="200">
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
-          <button type="button" id="pe-bl-ok" class="btn btn-primary" style="padding:4px 14px;min-height:unset;font-size:11px">確認</button>
-          <button type="button" id="pe-bl-cx" class="btn btn-ghost"   style="padding:4px 14px;min-height:unset;font-size:11px">取消</button>
+          <button type="button" id="${SEL.peBlOk}" class="btn btn-primary" style="padding:4px 14px;min-height:unset;font-size:11px">確認</button>
+          <button type="button" id="${SEL.peBlCx}" class="btn btn-ghost"   style="padding:4px 14px;min-height:unset;font-size:11px">取消</button>
         </div>
       </div>`;
-    document.getElementById('pe-bl-cx')?.addEventListener('click', () => {
+    q(SEL.peBlCx)?.addEventListener('click', () => {
       form.style.display = 'none'; form.innerHTML = ''; delete form.dataset.open;
     });
-    document.getElementById('pe-bl-ok')?.addEventListener('click', () => {
-      const dest = document.getElementById('pe-bl-dest')?.value.trim();
+    q(SEL.peBlOk)?.addEventListener('click', () => {
+      const dest = q(SEL.peBlDest)?.value.trim();
       if (!dest) { showToast('請填寫目的地', 'warn'); return; }
-      bl.push({ destination: dest, notes: document.getElementById('pe-bl-notes')?.value.trim() || '' });
+      bl.push({ destination: dest, notes: q(SEL.peBlNotes)?.value.trim() || '' });
       form.style.display = 'none'; form.innerHTML = ''; delete form.dataset.open;
       renderBl();
     });
   });
 
-  document.getElementById('pe-cancel')?.addEventListener('click', () => {
+  q(SEL.peCancel)?.addEventListener('click', () => {
     ui.renderPrefs(getState().preferences);
   });
 
-  document.getElementById('pe-save')?.addEventListener('click', async () => {
+  q(SEL.peSave)?.addEventListener('click', async () => {
     const { user, isOnline } = getState();
     if (!isOnline) { showToast('離線中，無法儲存', 'warn'); return; }
     const updated = {
       ...initPrefs,
-      travel_style:      document.getElementById('pe-style')?.value,
-      budget_level:      document.getElementById('pe-budget')?.value,
-      pace_preference:   document.getElementById('pe-pace')?.value,
-      travel_companions: document.getElementById('pe-companion')?.value,
+      travel_style:      q(SEL.peStyle)?.value,
+      budget_level:      q(SEL.peBudget)?.value,
+      pace_preference:   q(SEL.pePace)?.value,
+      travel_companions: q(SEL.peCompanion)?.value,
       language_skills:   [...langs],
       interests:         [...ints],
       bucket_list:       [...bl],
@@ -361,27 +387,30 @@ function bindPrefsEditEvents(initPrefs) {
   });
 }
 
-/* ── Checklist ── */
+// ── Checklist — AbortController 確保每次 re-render 後舊 listener 全清 ─────────
 function bindChecklistEvents(trip) {
   if (!trip) return;
 
+  checklistAC.abort();
+  checklistAC = new AbortController();
+  const { signal } = checklistAC;
+
   document.querySelectorAll('[data-toggle]').forEach(hdr => {
     hdr.addEventListener('click', () => {
-      const bodyId = hdr.dataset.toggle;
-      const body   = document.getElementById(bodyId);
-      const arrow  = hdr.querySelector('.seg-arrow');
+      const body  = q(hdr.dataset.toggle);
+      const arrow = hdr.querySelector('.seg-arrow');
       if (!body) return;
       const hidden = body.style.display === 'none';
       body.style.display = hidden ? 'block' : 'none';
       if (arrow) arrow.textContent = hidden ? '▼' : '▶';
-    });
+    }, { signal });
   });
 
   document.querySelectorAll('[data-todo-id]').forEach(item => {
     item.addEventListener('click', e => {
       if (e.target.closest('[data-todo-del]')) return;
       toggleTodo(trip, item.dataset.todoId);
-    });
+    }, { signal });
   });
 
   document.querySelectorAll('[data-todo-del]').forEach(btn => {
@@ -392,14 +421,14 @@ function bindChecklistEvents(trip) {
       persistTrip(trip).then(ok => {
         if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
       });
-    });
+    }, { signal });
   });
 
   document.querySelectorAll('[data-packing-id]').forEach(item => {
     item.addEventListener('click', e => {
       if (e.target.closest('[data-packing-del]')) return;
       togglePacking(trip, item.dataset.packingId);
-    });
+    }, { signal });
   });
 
   document.querySelectorAll('[data-packing-del]').forEach(btn => {
@@ -410,11 +439,11 @@ function bindChecklistEvents(trip) {
       persistTrip(trip).then(ok => {
         if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
       });
-    });
+    }, { signal });
   });
 
-  document.getElementById('todo-add-btn')?.addEventListener('click', () => {
-    const input = document.getElementById('todo-add-input');
+  q(SEL.todoAddBtn)?.addEventListener('click', () => {
+    const input = q(SEL.todoAddInput);
     const text = input?.value.trim();
     if (!text) return;
     trip.todo = [...(trip.todo || []), { id: generateId('todo'), text, done: false }];
@@ -422,20 +451,20 @@ function bindChecklistEvents(trip) {
       if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
       else trip.todo.pop();
     });
-  });
+  }, { signal });
 
-  const todoInput = document.getElementById('todo-add-input');
+  const todoInput = q(SEL.todoAddInput);
   if (todoInput) {
-    todoInput.addEventListener('compositionstart', () => { _todoComposing = true; });
-    todoInput.addEventListener('compositionend', () => { setTimeout(() => { _todoComposing = false; }, 0); });
+    todoInput.addEventListener('compositionstart', () => { _todoComposing = true; }, { signal });
+    todoInput.addEventListener('compositionend',   () => { setTimeout(() => { _todoComposing = false; }, 0); }, { signal });
     todoInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !_todoComposing && !e.isComposing) document.getElementById('todo-add-btn')?.click();
-    });
+      if (e.key === 'Enter' && !_todoComposing && !e.isComposing) q(SEL.todoAddBtn)?.click();
+    }, { signal });
   }
 
-  document.getElementById('packing-add-btn')?.addEventListener('click', () => {
-    const nameInput = document.getElementById('packing-add-input');
-    const catInput  = document.getElementById('packing-cat-input');
+  q(SEL.packingAddBtn)?.addEventListener('click', () => {
+    const nameInput = q(SEL.packingAddInput);
+    const catInput  = q(SEL.packingCatInput);
     const text = nameInput?.value.trim();
     if (!text) return;
     const category = catInput?.value.trim() || '其他';
@@ -444,15 +473,15 @@ function bindChecklistEvents(trip) {
       if (ok) { ui.renderTimeline(trip); bindChecklistEvents(trip); }
       else trip.packing.pop();
     });
-  });
+  }, { signal });
 
-  const packInput = document.getElementById('packing-add-input');
+  const packInput = q(SEL.packingAddInput);
   if (packInput) {
-    packInput.addEventListener('compositionstart', () => { _packComposing = true; });
-    packInput.addEventListener('compositionend', () => { setTimeout(() => { _packComposing = false; }, 0); });
+    packInput.addEventListener('compositionstart', () => { _packComposing = true; }, { signal });
+    packInput.addEventListener('compositionend',   () => { setTimeout(() => { _packComposing = false; }, 0); }, { signal });
     packInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !_packComposing && !e.isComposing) document.getElementById('packing-add-btn')?.click();
-    });
+      if (e.key === 'Enter' && !_packComposing && !e.isComposing) q(SEL.packingAddBtn)?.click();
+    }, { signal });
   }
 }
 
@@ -476,6 +505,7 @@ async function togglePacking(trip, id) {
   bindChecklistEvents(trip);
 }
 
+// ── Data persistence ──────────────────────────────────────────────────────────
 async function persistTrip(trip) {
   const { trips, user, isOnline } = getState();
   if (!isOnline) { showToast('離線中，無法儲存', 'warn'); return false; }
@@ -513,9 +543,9 @@ async function deleteTrip(tripId) {
   return true;
 }
 
-/* ── Data Panel ── */
+// ── Data Panel ────────────────────────────────────────────────────────────────
 function bindDataPanelEvents() {
-  const importTripsFile = document.getElementById('import-trips-file');
+  const importTripsFile = q(SEL.importTripsFile);
   if (importTripsFile) importTripsFile.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -534,7 +564,7 @@ function bindDataPanelEvents() {
     e.target.value = '';
   });
 
-  const importPrefsFile = document.getElementById('import-prefs-file');
+  const importPrefsFile = q(SEL.importPrefsFile);
   if (importPrefsFile) importPrefsFile.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -550,38 +580,36 @@ function bindDataPanelEvents() {
     e.target.value = '';
   });
 
-  const exportJsonBtn = document.getElementById('export-json-btn');
-  if (exportJsonBtn) exportJsonBtn.addEventListener('click', () => {
+  q(SEL.exportJsonBtn)?.addEventListener('click', () => {
     const { trips } = getState();
     const blob = new Blob([JSON.stringify(trips, null, 2)], { type: 'application/json' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `trips_${new Date().toISOString().slice(0,10)}.json` });
     a.click(); URL.revokeObjectURL(a.href);
   });
 
-  const exportExcelBtn = document.getElementById('export-excel-btn');
-  if (exportExcelBtn) exportExcelBtn.addEventListener('click', exportExcel);
+  q(SEL.exportExcelBtn)?.addEventListener('click', exportExcel);
 
-  const shareBtn = document.getElementById('share-btn');
-  if (shareBtn) shareBtn.addEventListener('click', async () => {
+  q(SEL.shareBtn)?.addEventListener('click', async () => {
+    const shareBtn = q(SEL.shareBtn);
     try {
       shareBtn.disabled = true; shareBtn.textContent = '產生中...';
       const { trips, preferences, activeTripId } = getState();
       const trip = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === activeTripId);
       const { id } = await api.createShare(trip, preferences);
       const url = `${location.origin}/share.html?id=${id}`;
-      const resultEl = document.getElementById('share-result');
-      const urlEl    = document.getElementById('share-url');
+      const resultEl = q(SEL.shareResult);
+      const urlEl    = q(SEL.shareUrl);
       if (resultEl) resultEl.style.display = 'block';
       if (urlEl) urlEl.textContent = url;
-      const copyBtn = document.getElementById('copy-share-btn');
+      const copyBtn = q(SEL.copyShareBtn);
       if (copyBtn) copyBtn.onclick = () => navigator.clipboard.writeText(url).then(() => showToast('已複製', 'success'));
     } catch (err) { showToast(`分享失敗：${err.message}`, 'error'); }
     finally { shareBtn.disabled = false; shareBtn.textContent = '建立唯讀分享連結（TTL 30天）'; }
   });
 
-  /* ── Trip Ideas ── */
-  const ideaAddBtn = document.getElementById('idea-add-btn');
-  const ideaInput  = document.getElementById('idea-add-input');
+  // Trip Ideas
+  const ideaAddBtn = q(SEL.ideaAddBtn);
+  const ideaInput  = q(SEL.ideaAddInput);
   if (ideaAddBtn) ideaAddBtn.addEventListener('click', async () => {
     const title = ideaInput?.value.trim();
     if (!title) return;
@@ -601,27 +629,28 @@ function bindDataPanelEvents() {
   });
   if (ideaInput) {
     ideaInput.addEventListener('compositionstart', () => { _ideaComposing = true; });
-    ideaInput.addEventListener('compositionend', () => { setTimeout(() => { _ideaComposing = false; }, 0); });
+    ideaInput.addEventListener('compositionend',   () => { setTimeout(() => { _ideaComposing = false; }, 0); });
     ideaInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !_ideaComposing && !e.isComposing) ideaAddBtn?.click();
     });
   }
 }
 
+// ── Expense Form ──────────────────────────────────────────────────────────────
 function bindExpenseFormEvents(trip, existingExp = null) {
-  const saveBtn   = document.getElementById('ef-save');
-  const cancelBtn = document.getElementById('ef-cancel');
+  const cancelBtn = q(SEL.efCancel);
+  const saveBtn   = q(SEL.efSave);
   if (cancelBtn) cancelBtn.addEventListener('click', () => {
-    const wrap = document.getElementById('expense-form-wrap');
+    const wrap = q(SEL.expenseFormWrap);
     if (wrap) wrap.innerHTML = '';
   });
   if (saveBtn) saveBtn.addEventListener('click', async () => {
-    const date     = document.getElementById('ef-date')?.value;
-    const category = document.getElementById('ef-category')?.value;
-    const amount   = parseFloat(document.getElementById('ef-amount')?.value);
-    const currency = document.getElementById('ef-currency')?.value?.trim() || trip.base_currency || 'TWD';
-    const segEl    = document.getElementById('ef-segment');
-    const note     = document.getElementById('ef-note')?.value?.trim();
+    const date     = q(SEL.efDate)?.value;
+    const category = q(SEL.efCategory)?.value;
+    const amount   = parseFloat(q(SEL.efAmount)?.value);
+    const currency = q(SEL.efCurrency)?.value?.trim() || trip.base_currency || 'TWD';
+    const segEl    = q(SEL.efSegment);
+    const note     = q(SEL.efNote)?.value?.trim();
     if (!date || !category || isNaN(amount) || amount <= 0) {
       showToast('請填寫日期、類別和金額', 'warn'); return;
     }
@@ -638,6 +667,7 @@ function bindExpenseFormEvents(trip, existingExp = null) {
   });
 }
 
+// ── Excel Export ──────────────────────────────────────────────────────────────
 async function exportExcel() {
   const { trips, activeTripId } = getState();
   const trip = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === activeTripId);
@@ -682,14 +712,15 @@ async function exportExcel() {
   a.click(); URL.revokeObjectURL(a.href);
 }
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
 function bindAuthEvents() {
-  const emailForm = document.getElementById('auth-email-form');
-  const otpForm   = document.getElementById('auth-otp-form');
+  const emailForm = q(SEL.authEmailForm);
+  const otpForm   = q(SEL.authOtpForm);
 
   emailForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     ui.clearAuthError();
-    const email = document.getElementById('auth-email-input')?.value.trim();
+    const email = q(SEL.authEmailInput)?.value.trim();
     if (!email) return;
     const btn = emailForm.querySelector('button[type=submit]');
     if (btn) btn.disabled = true;
@@ -706,7 +737,7 @@ function bindAuthEvents() {
   otpForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
     ui.clearAuthError();
-    const token = document.getElementById('auth-otp-input')?.value.trim();
+    const token = q(SEL.authOtpInput)?.value.trim();
     if (!token) return;
     const btn = otpForm.querySelector('button[type=submit]');
     if (btn) btn.disabled = true;
@@ -725,18 +756,18 @@ function bindAuthEvents() {
   });
 }
 
-/* ── Trip Modal ── */
+// ── Trip Modal ────────────────────────────────────────────────────────────────
 function openTripModal(trip) {
   ui.renderTripModal(trip);
   const tripId = trip?.id || null;
 
-  const overlay = document.getElementById('trip-modal');
+  const overlay = q(SEL.tripModal);
   overlay.onclick = e => { if (e.target === overlay) closeTripModal(); };
-  document.getElementById('trip-modal-close').onclick = closeTripModal;
-  document.getElementById('tm-cancel').onclick = closeTripModal;
-  document.getElementById('tm-save').onclick = () => saveTripFromModal(tripId);
+  q(SEL.tripModalClose).onclick = closeTripModal;
+  q(SEL.tmCancel).onclick = closeTripModal;
+  q(SEL.tmSave).onclick = () => saveTripFromModal(tripId);
 
-  const delBtn = document.getElementById('tm-delete');
+  const delBtn = q(SEL.tmDelete);
   if (delBtn) delBtn.onclick = () => {
     openConfirm({
       title: '刪除行程',
@@ -748,53 +779,48 @@ function openTripModal(trip) {
 }
 
 function closeTripModal() {
-  document.getElementById('trip-modal')?.classList.remove('open');
+  q(SEL.tripModal)?.classList.remove('open');
 }
 
 async function saveTripFromModal(existingId) {
-  const saveBtn = document.getElementById('tm-save');
+  const saveBtn = q(SEL.tmSave);
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '儲存中...'; }
   try {
-  const title    = document.getElementById('tm-title')?.value.trim();
-  const start    = document.getElementById('tm-start')?.value;
-  const end      = document.getElementById('tm-end')?.value;
-  const status   = document.getElementById('tm-status')?.value || 'planning';
-  const budget   = parseFloat(document.getElementById('tm-budget')?.value) || 0;
-  const currency = (document.getElementById('tm-currency')?.value.trim() || 'TWD').toUpperCase();
-  const notes    = document.getElementById('tm-notes')?.value.trim() || '';
+    const title    = q(SEL.tmTitle)?.value.trim();
+    const start    = q(SEL.tmStart)?.value;
+    const end      = q(SEL.tmEnd)?.value;
+    const status   = q(SEL.tmStatus)?.value || 'planning';
+    const budget   = parseFloat(q(SEL.tmBudget)?.value) || 0;
+    const currency = (q(SEL.tmCurrency)?.value.trim() || 'TWD').toUpperCase();
+    const notes    = q(SEL.tmNotes)?.value.trim() || '';
 
-  if (!title)        { showToast('請填寫行程名稱', 'warn'); return; }
-  if (!start || !end){ showToast('請填寫起訖日期', 'warn'); return; }
-  if (start > end)   { showToast('開始日期不能晚於結束日期', 'warn'); return; }
+    if (!title)         { showToast('請填寫行程名稱', 'warn'); return; }
+    if (!start || !end) { showToast('請填寫起訖日期', 'warn'); return; }
+    if (start > end)    { showToast('開始日期不能晚於結束日期', 'warn'); return; }
 
-  const { trips } = getState();
-  const allTrips  = [...(trips.current_trips || []), ...(trips.past_trips || [])];
-  const existing  = allTrips.find(t => t.id === existingId);
+    const { trips } = getState();
+    const allTrips  = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+    const existing  = allTrips.find(t => t.id === existingId);
 
-  const updated = {
-    ...(existing || {}),
-    id:            existingId || generateId(),
-    title,
-    start_date:    start,
-    end_date:      end,
-    status,
-    budget_total:  budget,
-    base_currency: currency,
-    notes,
-    segments:      existing?.segments  || [],
-    todo:          existing?.todo      || [],
-    packing:       existing?.packing   || [],
-    expenses:      existing?.expenses  || [],
-  };
+    const updated = {
+      ...(existing || {}),
+      id:            existingId || generateId(),
+      title, start_date: start, end_date: end, status,
+      budget_total: budget, base_currency: currency, notes,
+      segments: existing?.segments || [],
+      todo:     existing?.todo     || [],
+      packing:  existing?.packing  || [],
+      expenses: existing?.expenses || [],
+    };
 
-  const ok = await persistTrip(updated);
-  if (!ok) return;
+    const ok = await persistTrip(updated);
+    if (!ok) return;
 
-  closeTripModal();
-  if (!existingId) setState({ activeTripId: updated.id });
-  ui.renderTripSelector(getState().trips, getState().activeTripId);
-  renderActiveTrip();
-  showToast(existingId ? '行程已更新' : '行程已新增', 'success');
+    closeTripModal();
+    if (!existingId) setState({ activeTripId: updated.id });
+    ui.renderTripSelector(getState().trips, getState().activeTripId);
+    renderActiveTrip();
+    showToast(existingId ? '行程已更新' : '行程已新增', 'success');
   } finally {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '儲存'; }
   }
@@ -811,7 +837,7 @@ async function handleDeleteTrip(tripId) {
   showToast('行程已刪除', 'success');
 }
 
-/* ── Segment Modal ── */
+// ── Segment Modal ─────────────────────────────────────────────────────────────
 function openSegModal(seg, tripId) {
   const { trips } = getState();
   const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
@@ -819,20 +845,20 @@ function openSegModal(seg, tripId) {
   ui.renderSegModal(seg, trip?.start_date || '', trip?.end_date || '');
   const segId = seg?.id || null;
 
-  const overlay = document.getElementById('seg-modal');
+  const overlay = q(SEL.segModal);
   overlay.onclick = e => { if (e.target === overlay) closeSegModal(); };
-  document.getElementById('seg-modal-close').onclick = closeSegModal;
-  document.getElementById('sm-cancel').onclick = closeSegModal;
-  document.getElementById('sm-save').onclick = () => saveSegFromModal(segId, tripId);
+  q(SEL.segModalClose).onclick = closeSegModal;
+  q(SEL.smCancel).onclick = closeSegModal;
+  q(SEL.smSave).onclick = () => saveSegFromModal(segId, tripId);
 
-  document.getElementById('sm-colors').onclick = e => {
+  q(SEL.smColors).onclick = e => {
     const swatch = e.target.closest('.color-swatch');
     if (!swatch) return;
-    document.querySelectorAll('#sm-colors .color-swatch').forEach(s => s.classList.remove('selected'));
+    document.querySelectorAll(`#${SEL.smColors} .color-swatch`).forEach(s => s.classList.remove('selected'));
     swatch.classList.add('selected');
   };
 
-  const delBtn = document.getElementById('sm-delete');
+  const delBtn = q(SEL.smDelete);
   if (delBtn) delBtn.onclick = () => {
     openConfirm({
       title: '刪除分段',
@@ -844,56 +870,53 @@ function openSegModal(seg, tripId) {
 }
 
 function closeSegModal() {
-  document.getElementById('seg-modal')?.classList.remove('open');
+  q(SEL.segModal)?.classList.remove('open');
 }
 
 async function saveSegFromModal(existingId, tripId) {
-  const saveBtn = document.getElementById('sm-save');
+  const saveBtn = q(SEL.smSave);
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '儲存中...'; }
   try {
-  const name  = document.getElementById('sm-name')?.value.trim();
-  const start = document.getElementById('sm-start')?.value;
-  const end   = document.getElementById('sm-end')?.value;
-  const color = document.querySelector('#sm-colors .color-swatch.selected')?.dataset.color || '#0EA5E9';
+    const name  = q(SEL.smName)?.value.trim();
+    const start = q(SEL.smStart)?.value;
+    const end   = q(SEL.smEnd)?.value;
+    const color = document.querySelector(`#${SEL.smColors} .color-swatch.selected`)?.dataset.color || '#0EA5E9';
 
-  if (!name)         { showToast('請填寫分段名稱', 'warn'); return; }
-  if (!start || !end){ showToast('請填寫起訖日期', 'warn'); return; }
-  if (start > end)   { showToast('開始日期不能晚於結束日期', 'warn'); return; }
+    if (!name)          { showToast('請填寫分段名稱', 'warn'); return; }
+    if (!start || !end) { showToast('請填寫起訖日期', 'warn'); return; }
+    if (start > end)    { showToast('開始日期不能晚於結束日期', 'warn'); return; }
 
-  const { trips } = getState();
-  const allTrips  = [...(trips.current_trips || []), ...(trips.past_trips || [])];
-  const trip      = allTrips.find(t => t.id === tripId);
-  if (!trip) return;
+    const { trips } = getState();
+    const allTrips  = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+    const trip      = allTrips.find(t => t.id === tripId);
+    if (!trip) return;
 
-  if (trip.start_date && start < trip.start_date) {
-    showToast(`分段開始日期不能早於行程（${trip.start_date}）`, 'warn'); return;
-  }
-  if (trip.end_date && end > trip.end_date) {
-    showToast(`分段結束日期不能晚於行程（${trip.end_date}）`, 'warn'); return;
-  }
+    if (trip.start_date && start < trip.start_date) {
+      showToast(`分段開始日期不能早於行程（${trip.start_date}）`, 'warn'); return;
+    }
+    if (trip.end_date && end > trip.end_date) {
+      showToast(`分段結束日期不能晚於行程（${trip.end_date}）`, 'warn'); return;
+    }
 
-  const segments = [...(trip.segments || [])];
-  const idx      = segments.findIndex(s => s.id === existingId);
-  const segData  = {
-    ...(idx !== -1 ? segments[idx] : {}),
-    id:         existingId || generateId(),
-    name,
-    start_date: start,
-    end_date:   end,
-    color,
-    daily:      idx !== -1 ? segments[idx].daily : [],
-  };
+    const segments = [...(trip.segments || [])];
+    const idx      = segments.findIndex(s => s.id === existingId);
+    const segData  = {
+      ...(idx !== -1 ? segments[idx] : {}),
+      id: existingId || generateId(),
+      name, start_date: start, end_date: end, color,
+      daily: idx !== -1 ? segments[idx].daily : [],
+    };
 
-  if (idx !== -1) segments[idx] = segData;
-  else segments.push(segData);
+    if (idx !== -1) segments[idx] = segData;
+    else segments.push(segData);
 
-  trip.segments = segments;
-  const ok = await persistTrip(trip);
-  if (!ok) return;
+    trip.segments = segments;
+    const ok = await persistTrip(trip);
+    if (!ok) return;
 
-  closeSegModal();
-  renderActiveTrip();
-  showToast(existingId ? '分段已更新' : '分段已新增', 'success');
+    closeSegModal();
+    renderActiveTrip();
+    showToast(existingId ? '分段已更新' : '分段已新增', 'success');
   } finally {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '儲存'; }
   }
@@ -911,20 +934,20 @@ async function handleDeleteSeg(segId, tripId) {
   showToast('分段已刪除', 'success');
 }
 
-/* ── Day Modal ── */
+// ── Day Modal ─────────────────────────────────────────────────────────────────
 function openDayModal(day, segId, tripId, dayIndex = -1) {
   const { trips } = getState();
   const trip = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === tripId);
   const seg  = trip?.segments?.find(s => s.id === segId);
   ui.renderDayModal(day, seg?.start_date || '', seg?.end_date || '');
 
-  const overlay = document.getElementById('day-modal');
+  const overlay = q(SEL.dayModal);
   overlay.onclick = e => { if (e.target === overlay) closeDayModal(); };
-  document.getElementById('day-modal-close').onclick = closeDayModal;
-  document.getElementById('dm-cancel').onclick = closeDayModal;
-  document.getElementById('dm-save').onclick = () => saveDayFromModal(dayIndex, segId, tripId);
+  q(SEL.dayModalClose).onclick = closeDayModal;
+  q(SEL.dmCancel).onclick = closeDayModal;
+  q(SEL.dmSave).onclick = () => saveDayFromModal(dayIndex, segId, tripId);
 
-  const delBtn = document.getElementById('dm-delete');
+  const delBtn = q(SEL.dmDelete);
   if (delBtn) delBtn.onclick = () => {
     openConfirm({
       title: '刪除日程',
@@ -934,18 +957,18 @@ function openDayModal(day, segId, tripId, dayIndex = -1) {
     });
   };
 
-  /* ── Nominatim 地點搜尋 ── */
-  const placeSearch  = document.getElementById('dm-place-search');
-  const placeResults = document.getElementById('dm-place-results');
+  // Nominatim 地點搜尋
+  const placeSearch  = q(SEL.dmPlaceSearch);
+  const placeResults = q(SEL.dmPlaceResults);
   let placeTimer = null;
   if (placeSearch && placeResults) {
     placeSearch.addEventListener('input', () => {
       clearTimeout(placeTimer);
-      const q = placeSearch.value.trim();
-      if (q.length < 2) { placeResults.style.display = 'none'; return; }
+      const qs = placeSearch.value.trim();
+      if (qs.length < 2) { placeResults.style.display = 'none'; return; }
       placeTimer = setTimeout(async () => {
         try {
-          const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&accept-language=zh-TW,en`);
+          const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(qs)}&format=json&limit=5&accept-language=zh-TW,en`);
           const data = await res.json();
           if (!data.length) { placeResults.style.display = 'none'; return; }
           placeResults.innerHTML = data.map(item => {
@@ -962,9 +985,9 @@ function openDayModal(day, segId, tripId, dayIndex = -1) {
     placeResults.addEventListener('click', e => {
       const li = e.target.closest('li');
       if (!li) return;
-      document.getElementById('dm-lat').value = parseFloat(li.dataset.lat).toFixed(6);
-      document.getElementById('dm-lng').value = parseFloat(li.dataset.lng).toFixed(6);
-      const titleInput = document.getElementById('dm-title');
+      q(SEL.dmLat).value = parseFloat(li.dataset.lat).toFixed(6);
+      q(SEL.dmLng).value = parseFloat(li.dataset.lng).toFixed(6);
+      const titleInput = q(SEL.dmTitle);
       if (titleInput && !titleInput.value.trim()) {
         titleInput.value = li.dataset.full.split(',')[0].trim();
       }
@@ -975,57 +998,56 @@ function openDayModal(day, segId, tripId, dayIndex = -1) {
 }
 
 function closeDayModal() {
-  document.getElementById('day-modal')?.classList.remove('open');
+  q(SEL.dayModal)?.classList.remove('open');
 }
 
 async function saveDayFromModal(existingIndex, segId, tripId) {
-  const saveBtn = document.getElementById('dm-save');
+  const saveBtn = q(SEL.dmSave);
   if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '儲存中...'; }
   try {
-  const date  = document.getElementById('dm-date')?.value;
-  const type  = document.getElementById('dm-type')?.value || 'sightseeing';
-  const title = document.getElementById('dm-title')?.value.trim();
-  const note  = document.getElementById('dm-note')?.value.trim();
-  const latRaw = document.getElementById('dm-lat')?.value;
-  const lngRaw = document.getElementById('dm-lng')?.value;
-  const lat = latRaw !== '' && latRaw != null ? parseFloat(latRaw) : null;
-  const lng = lngRaw !== '' && lngRaw != null ? parseFloat(lngRaw) : null;
+    const date   = q(SEL.dmDate)?.value;
+    const type   = q(SEL.dmType)?.value || 'sightseeing';
+    const title  = q(SEL.dmTitle)?.value.trim();
+    const note   = q(SEL.dmNote)?.value.trim();
+    const latRaw = q(SEL.dmLat)?.value;
+    const lngRaw = q(SEL.dmLng)?.value;
+    const lat = latRaw !== '' && latRaw != null ? parseFloat(latRaw) : null;
+    const lng = lngRaw !== '' && lngRaw != null ? parseFloat(lngRaw) : null;
 
-  if (!date)  { showToast('請填寫日期', 'warn'); return; }
-  if (!title) { showToast('請填寫標題', 'warn'); return; }
+    if (!date)  { showToast('請填寫日期', 'warn'); return; }
+    if (!title) { showToast('請填寫標題', 'warn'); return; }
 
-  let transport = null;
-  if (type === 'transport') {
-    transport = {
-      mode:           document.getElementById('dm-t-mode')?.value || 'other',
-      from:           document.getElementById('dm-t-from')?.value.trim() || '',
-      to:             document.getElementById('dm-t-to')?.value.trim() || '',
-      carrier:        document.getElementById('dm-t-carrier')?.value.trim() || '',
-      duration_hours: parseFloat(document.getElementById('dm-t-duration')?.value) || null,
-    };
-  }
+    let transport = null;
+    if (type === 'transport') {
+      transport = {
+        mode:           q(SEL.dmTMode)?.value || 'other',
+        from:           q(SEL.dmTFrom)?.value.trim() || '',
+        to:             q(SEL.dmTTo)?.value.trim() || '',
+        carrier:        q(SEL.dmTCarrier)?.value.trim() || '',
+        duration_hours: parseFloat(q(SEL.dmTDuration)?.value) || null,
+      };
+    }
 
-  const { trips } = getState();
-  const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
-  const trip = allTrips.find(t => t.id === tripId);
-  const seg  = trip?.segments?.find(s => s.id === segId);
-  if (!trip || !seg) return;
+    const { trips } = getState();
+    const allTrips = [...(trips.current_trips || []), ...(trips.past_trips || [])];
+    const trip = allTrips.find(t => t.id === tripId);
+    const seg  = trip?.segments?.find(s => s.id === segId);
+    if (!trip || !seg) return;
 
-  const dayData = { date, type, title, note: note || '', lat, lng, transport };
+    const dayData = { date, type, title, note: note || '', lat, lng, transport };
+    const days = [...(seg.daily || [])];
+    if (existingIndex >= 0) days[existingIndex] = dayData;
+    else days.push(dayData);
 
-  const days = [...(seg.daily || [])];
-  if (existingIndex >= 0) days[existingIndex] = dayData;
-  else days.push(dayData);
+    days.sort((a, b) => a.date.localeCompare(b.date));
+    seg.daily = days;
 
-  days.sort((a, b) => a.date.localeCompare(b.date));
-  seg.daily = days;
+    const ok = await persistTrip(trip);
+    if (!ok) return;
 
-  const ok = await persistTrip(trip);
-  if (!ok) return;
-
-  closeDayModal();
-  renderActiveTrip();
-  showToast(existingIndex >= 0 ? '日程已更新' : '日程已新增', 'success');
+    closeDayModal();
+    renderActiveTrip();
+    showToast(existingIndex >= 0 ? '日程已更新' : '日程已新增', 'success');
   } finally {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '儲存'; }
   }

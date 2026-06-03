@@ -4,6 +4,7 @@
  */
 import { chromium } from '/Users/mac/.nvm/versions/node/v24.15.0/lib/node_modules/playwright/index.mjs';
 import { writeFileSync, mkdirSync } from 'fs';
+import { CSEL } from './js/selectors.js';
 
 const BASE   = 'http://localhost:4321/?dev=1';
 const SS_DIR = './test-screenshots';
@@ -258,9 +259,9 @@ try {
   const firstHeader = d.locator('.seg-header').first();
   await firstHeader.click();
   await d.waitForTimeout(300);
-  await d.locator('#tab-budget').click();
+  await d.locator(CSEL.tabBudget).click();
   await d.waitForTimeout(300);
-  await d.locator('#tab-trips').click();
+  await d.locator(CSEL.tabTrips).click();
   await d.waitForTimeout(400);
   const body   = d.locator('.seg-block').first().locator('.seg-body');
   const hidden = await body.evaluate(el => el.style.display === 'none');
@@ -294,7 +295,7 @@ try {
     const popup = await d.locator('.maplibregl-popup').isVisible();
     log('地圖 popup 開啟', popup);
     if (popup) await ss(d, '07-map-popup');
-    await d.locator('#map').click({ position: { x: 800, y: 700 } });
+    await d.locator(CSEL.map).click({ position: { x: 800, y: 700 } });
   } else {
     log('地圖 popup 開啟', false, '無標記可點擊（WebGL headless 限制）');
   }
@@ -302,7 +303,7 @@ try {
 
 // 11. Budget tab 費用分段小計
 try {
-  await d.locator('#tab-budget').click();
+  await d.locator(CSEL.tabBudget).click();
   await d.waitForTimeout(500);
   const groups = await d.locator('.expense-seg-group').count();
   log(`費用分段小計（${groups} 個分組）`, groups >= 2, `${groups} 組`);
@@ -319,7 +320,7 @@ try {
 
 // 13. 新增花費（Day Modal 開啟）
 try {
-  await d.locator('#tab-trips').click();
+  await d.locator(CSEL.tabTrips).click();
   await d.waitForTimeout(300);
   // 點第一個 Day card 的編輯
   const dayCard = d.locator('.day-card').first();
@@ -331,13 +332,13 @@ try {
 
 // 14. Trip 編輯 modal
 try {
-  const editBtn = d.locator('#trip-edit-btn');
+  const editBtn = d.locator(CSEL.tripEditBtn);
   await editBtn.click();
   await d.waitForSelector('#trip-modal.open', { timeout: 3000 });
   log('Trip 編輯 modal 開啟', true);
-  const titleVal = await d.locator('#tm-title').inputValue();
+  const titleVal = await d.locator(CSEL.tmTitle).inputValue();
   log('Trip modal 預填行程名稱', titleVal.includes('東京') || titleVal.includes('大阪'), `"${titleVal}"`);
-  const notesVal = await d.locator('#tm-notes').inputValue();
+  const notesVal = await d.locator(CSEL.tmNotes).inputValue();
   log('Trip modal 預填備註', notesVal === '記得帶雨傘！', `"${notesVal}"`);
   await ss(d, '10-trip-edit-modal');
   await d.keyboard.press('Escape');
@@ -346,7 +347,7 @@ try {
 
 // 15. 新增分段 modal
 try {
-  await d.locator('#add-seg-btn').click();
+  await d.locator(CSEL.addSegBtn).click();
   await d.waitForSelector('#seg-modal.open', { timeout: 3000 });
   log('新增分段 modal 開啟', true);
   await ss(d, '11-seg-modal');
@@ -360,26 +361,26 @@ try {
   await addDayBtn.click();
   await d.waitForSelector('#day-modal.open', { timeout: 3000 });
   log('新增日程 modal 開啟', true);
-  const placeSearch = await d.locator('#dm-place-search').isVisible();
+  const placeSearch = await d.locator(CSEL.dmPlaceSearch).isVisible();
   log('Nominatim 地點搜尋欄位顯示', placeSearch);
   await ss(d, '12-day-modal-nominatim');
 } catch(e) { log('新增日程 modal / 地點搜尋', false, e.message); }
 
 // 17. Nominatim 搜尋功能（真實呼叫 OSM）
 try {
-  await d.locator('#dm-place-search').fill('淺草寺');
+  await d.locator(CSEL.dmPlaceSearch).fill('淺草寺');
   await d.waitForTimeout(600);
   // 等下拉出現（需 400ms debounce + 網路）
   try {
-    await d.waitForSelector('#dm-place-results li', { timeout: 5000 });
-    const items = await d.locator('#dm-place-results li').count();
+    await d.waitForSelector(CSEL.dmPlaceResultsLi, { timeout: 5000 });
+    const items = await d.locator(CSEL.dmPlaceResultsLi).count();
     log('Nominatim 搜尋結果顯示', items > 0, `${items} 筆`);
 
     // 點第一筆 → 自動填座標
-    await d.locator('#dm-place-results li').first().click();
+    await d.locator(CSEL.dmPlaceResultsLi).first().click();
     await d.waitForTimeout(300);
-    const lat = await d.locator('#dm-lat').inputValue();
-    const lng = await d.locator('#dm-lng').inputValue();
+    const lat = await d.locator(CSEL.dmLat).inputValue();
+    const lng = await d.locator(CSEL.dmLng).inputValue();
     log('Nominatim 點選後自動填緯度', lat.length > 0, `lat=${lat}`);
     log('Nominatim 點選後自動填經度', lng.length > 0, `lng=${lng}`);
     await ss(d, '13-nominatim-filled');
@@ -392,10 +393,10 @@ try {
 
 // 18. Day modal 存檔 loading 狀態
 try {
-  await d.locator('#dm-title').fill('測試日程');
-  await d.locator('#dm-date').fill(today);
-  await d.locator('#dm-type').selectOption('sightseeing');
-  const saveBtn = d.locator('#dm-save');
+  await d.locator(CSEL.dmTitle).fill('測試日程');
+  await d.locator(CSEL.dmDate).fill(today);
+  await d.locator(CSEL.dmType).selectOption('sightseeing');
+  const saveBtn = d.locator(CSEL.dmSave);
   const clickPromise = saveBtn.click();
   // 立刻抓按鈕文字
   await d.waitForTimeout(50);
@@ -415,16 +416,16 @@ try {
   const editBtn = d.locator('.day-edit-btn').first();
   await editBtn.click();
   await d.waitForSelector('#day-modal.open', { timeout: 3000 });
-  const delBtn = d.locator('#dm-delete');
+  const delBtn = d.locator(CSEL.dmDelete);
   const delVisible = await delBtn.isVisible();
   if (delVisible) {
     await delBtn.click();
-    await d.waitForSelector('#confirm-modal.open', { timeout: 3000 });
+    await d.waitForSelector(CSEL.confirmModal + '.open', { timeout: 3000 });
     log('刪除日程：自訂確認 modal 開啟', true);
     await ss(d, '15-confirm-modal');
-    await d.locator('#confirm-cancel').click();
+    await d.locator(CSEL.confirmCancel).click();
     await d.waitForTimeout(300);
-    const closed = await d.locator('#confirm-modal.open').count() === 0;
+    const closed = await d.locator(CSEL.confirmModal + '.open').count() === 0;
     log('確認 modal：取消後關閉', closed);
     await d.keyboard.press('Escape');
     await d.waitForTimeout(300);
@@ -444,13 +445,13 @@ try {
   const editBtn = d.locator('.day-edit-btn').first();
   await editBtn.click();
   await d.waitForSelector('#day-modal.open', { timeout: 3000 });
-  const delBtn = d.locator('#dm-delete');
+  const delBtn = d.locator(CSEL.dmDelete);
   if (await delBtn.isVisible()) {
     await delBtn.click();
-    await d.waitForSelector('#confirm-modal.open', { timeout: 3000 });
+    await d.waitForSelector(CSEL.confirmModal + '.open', { timeout: 3000 });
     await d.keyboard.press('Escape');
     await d.waitForTimeout(300);
-    const closed = await d.locator('#confirm-modal.open').count() === 0;
+    const closed = await d.locator(CSEL.confirmModal + '.open').count() === 0;
     log('確認 modal ESC 關閉', closed);
   } else {
     log('確認 modal ESC 關閉', false, '跳過');
@@ -465,7 +466,7 @@ try {
   await d.locator('.checklist-header').first().scrollIntoViewIfNeeded();
   const packingHeader = await d.locator('.checklist-header').first().isVisible();
   log('打包清單 header 可見', packingHeader);
-  const packingCount = await d.locator('#packing-body .checklist-item').count();
+  const packingCount = await d.locator('#' + 'packing-body' + ' .checklist-item').count();
   log(`打包清單項目（${packingCount} 項）`, packingCount === 3, `${packingCount} 項`);
   await ss(d, '16-packing-list');
 } catch(e) { log('打包清單', false, e.message); }
@@ -487,20 +488,20 @@ try {
 
 // 24. 偏好 tab
 try {
-  await d.locator('#tab-prefs').click();
+  await d.locator(CSEL.tabPrefs).click();
   await d.waitForTimeout(500);
-  const prefsEl = await d.locator('#prefs-content').isVisible();
+  const prefsEl = await d.locator(CSEL.prefsContent).isVisible();
   log('偏好 tab 渲染', prefsEl);
   await ss(d, '17-prefs-tab');
 } catch(e) { log('偏好 tab', false, e.message); }
 
 // 25. 資料 tab
 try {
-  await d.locator('#tab-data').click();
+  await d.locator(CSEL.tabData).click();
   await d.waitForTimeout(500);
-  const exportJson  = await d.locator('#export-json-btn').isVisible();
-  const exportExcel = await d.locator('#export-excel-btn').isVisible();
-  const shareBtn    = await d.locator('#share-btn').isVisible();
+  const exportJson  = await d.locator(CSEL.exportJsonBtn).isVisible();
+  const exportExcel = await d.locator(CSEL.exportExcelBtn).isVisible();
+  const shareBtn    = await d.locator(CSEL.shareBtn).isVisible();
   log('資料 tab：匯出 JSON', exportJson);
   log('資料 tab：匯出 Excel', exportExcel);
   log('資料 tab：分享按鈕', shareBtn);
@@ -511,7 +512,7 @@ try {
 try {
   const [download] = await Promise.all([
     d.waitForEvent('download', { timeout: 4000 }),
-    d.locator('#export-json-btn').click(),
+    d.locator(CSEL.exportJsonBtn).click(),
   ]);
   const fname = download.suggestedFilename();
   log('JSON 匯出下載觸發', fname.endsWith('.json'), `檔名=${fname}`);
@@ -519,7 +520,7 @@ try {
 
 // 27. 行程切換（切到第二筆義大利）
 try {
-  await d.locator('#tab-trips').click();
+  await d.locator(CSEL.tabTrips).click();
   await d.waitForTimeout(300);
   await d.locator('#trip-selector-btn').click();
   await d.waitForTimeout(400);
@@ -551,7 +552,7 @@ try {
 
 // 29. 漢堡按鈕桌機隱藏
 try {
-  const display = await d.locator('#panel-toggle').evaluate(el =>
+  const display = await d.locator(CSEL.panelToggle).evaluate(el =>
     window.getComputedStyle(el).display
   );
   log('桌機：漢堡按鈕隱藏', display === 'none', `display=${display}`);
@@ -565,8 +566,8 @@ try {
     const items = await d.locator('#trip-selector-list li').all();
     if (items.length) await items[i % items.length].click();
     await d.waitForTimeout(100);
-    await d.locator('#tab-budget').click();
-    await d.locator('#tab-trips').click();
+    await d.locator(CSEL.tabBudget).click();
+    await d.locator(CSEL.tabTrips).click();
   }
   const appOk = await d.locator('#app.ready').count() > 0;
   log('壓力：快速切換行程 + tab 不崩潰', appOk);
@@ -599,7 +600,7 @@ try {
 
 // 31. 漢堡按鈕可見
 try {
-  const display = await m.locator('#panel-toggle').evaluate(el =>
+  const display = await m.locator(CSEL.panelToggle).evaluate(el =>
     window.getComputedStyle(el).display
   );
   log('手機：漢堡按鈕顯示', display === 'flex', `display=${display}`);
@@ -608,7 +609,7 @@ try {
 
 // 32. 開啟面板 + 行程資料渲染
 try {
-  await m.locator('#panel-toggle').tap();
+  await m.locator(CSEL.panelToggle).tap();
   await m.waitForTimeout(500);
   const panelOpen = await m.locator('#left-panel.panel-open').count() > 0;
   log('手機：開啟面板', panelOpen);
@@ -647,7 +648,7 @@ try {
 
 // 36. 手機收起面板
 try {
-  await m.locator('#panel-toggle').tap();
+  await m.locator(CSEL.panelToggle).tap();
   await m.waitForTimeout(500);
   const closed = await m.locator('#left-panel.panel-open').count() === 0;
   log('手機：收起面板', closed);
@@ -656,7 +657,7 @@ try {
 
 // 37. 手機深色模式
 try {
-  await m.locator('#panel-toggle').tap();
+  await m.locator(CSEL.panelToggle).tap();
   await m.waitForTimeout(400);
   await m.emulateMedia({ colorScheme: 'dark' });
   await m.waitForTimeout(400);
@@ -685,7 +686,7 @@ try {
 
 // 39. 手機 modal 開啟（Trip）
 try {
-  await m.locator('#tab-trips').tap();
+  await m.locator(CSEL.tabTrips).tap();
   await m.waitForTimeout(300);
   await m.locator('#add-trip-btn').tap();
   await m.waitForSelector('#trip-modal.open', { timeout: 3000 });
@@ -697,7 +698,7 @@ try {
 
 // 40. 手機 Budget tab + 費用分組
 try {
-  await m.locator('#tab-budget').tap();
+  await m.locator(CSEL.tabBudget).tap();
   await m.waitForTimeout(500);
   const groups = await m.locator('.expense-seg-group').count();
   log(`手機：費用分段分組（${groups} 組）`, groups >= 2, `${groups} 組`);
@@ -706,7 +707,7 @@ try {
 
 // 41. 手機行程切換
 try {
-  await m.locator('#tab-trips').tap();
+  await m.locator(CSEL.tabTrips).tap();
   await m.waitForTimeout(300);
   await m.locator('#trip-selector-btn').tap();
   await m.waitForTimeout(400);
@@ -725,16 +726,16 @@ try {
 
 // 42. 壓力：手機快速開關 modal + tab 切換
 try {
-  await m.locator('#tab-trips').tap();
+  await m.locator(CSEL.tabTrips).tap();
   await m.waitForTimeout(200);
   for (let i = 0; i < 6; i++) {
     await m.locator('#add-trip-btn').tap();
     await m.waitForTimeout(150);
     await m.keyboard.press('Escape');
     await m.waitForTimeout(150);
-    await m.locator('#tab-budget').tap();
+    await m.locator(CSEL.tabBudget).tap();
     await m.waitForTimeout(100);
-    await m.locator('#tab-trips').tap();
+    await m.locator(CSEL.tabTrips).tap();
     await m.waitForTimeout(100);
   }
   const ok = await m.locator('#app.ready').count() > 0;
