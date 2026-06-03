@@ -1,22 +1,22 @@
-/* ── Kai Travel Planner — The Expedition Log ── */
+/* ── Kai Travel Planner — The Field Notebook ── */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Quicksand:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* ── Tokens ── */
 :root {
-  --c-primary:       #0B7FA5;
-  --c-primary-dark:  #09698A;
-  --c-primary-light: #E4F4FA;
-  --c-accent:        #E06C00;
-  --c-accent-lt:     rgba(224,108,0,.08);
-  --c-bg:            #EFF1F5;
-  --c-surface:       #FFFFFF;
-  --c-border:        #DDE2EA;
-  --c-text:          #1B2A3B;
-  --c-text-2:        #3A4F63;
-  --c-muted:         #6B7A8D;
-  --c-muted-lt:      #9BAAB8;
-  --c-grid:          rgba(175,190,210,0.28);
-  --c-row-hover:     #F5F7FA;
+  --c-primary:       #2C6E8A;
+  --c-primary-dark:  #1F5570;
+  --c-primary-light: #E6F2F7;
+  --c-accent:        #C8790A;
+  --c-accent-lt:     rgba(200,121,10,.09);
+  --c-bg:            #F0EBE1;
+  --c-surface:       #FEFCF8;
+  --c-border:        #DDD5C8;
+  --c-text:          #1E2D20;
+  --c-text-2:        #4A5E4D;
+  --c-muted:         #7A7066;
+  --c-muted-lt:      #A89E94;
+  --c-grid:          rgba(170,155,135,0.22);
+  --c-row-hover:     #EDE5D8;
   --r-card:          10px;
   --r-btn:           8px;
   --r-badge:         20px;
@@ -201,7 +201,7 @@ button, input, select {
 }
 .day-tab-btn:hover { border-color: var(--c-primary); background: var(--c-primary-light); }
 .day-tab-btn.active { background: var(--c-primary-light); border-color: var(--c-primary); }
-.day-tab-btn.is-today-tab { border-color: rgba(224,108,0,.4); background: var(--c-accent-lt); }
+.day-tab-btn.is-today-tab { border-color: rgba(200,121,10,.4); background: var(--c-accent-lt); }
 .day-tab-num {
   font-family: var(--font-display); font-size: 10px; font-weight: 700;
   color: var(--c-muted); letter-spacing: .04em;
@@ -253,7 +253,7 @@ button, input, select {
   font-weight: 600;
 }
 .badge-planning  { color: #1d4ed8; background: #dbeafe; }
-.badge-ongoing   { color: #0B7FA5; background: #E4F4FA; }
+.badge-ongoing   { color: #2C6E8A; background: #E6F2F7; }
 .badge-completed { color: var(--c-muted); background: var(--c-row-hover); }
 .badge-readonly  { color: #92400e; background: #fef3c7; }
 
@@ -359,7 +359,7 @@ button, input, select {
   background: var(--c-accent-lt);
   box-shadow: inset 4px 0 0 var(--c-accent);
 }
-.day-card.is-today:hover { background: rgba(224,108,0,.12); }
+.day-card.is-today:hover { background: rgba(200,121,10,.12); }
 .today-badge {
   display: inline-flex;
   align-items: center;
@@ -385,7 +385,7 @@ button, input, select {
 .day-icon-sightseeing { color: #f59e0b; }
 .day-icon-transport   { color: #94a3b8; }
 .day-icon-trekking    { color: #22c55e; }
-.day-icon-diving      { color: #0B7FA5; }
+.day-icon-diving      { color: #2C6E8A; }
 .day-icon-rest        { color: #a855f7; }
 
 .day-body { flex: 1; min-width: 0; }
@@ -1094,8 +1094,8 @@ button, input, select {
 /* ── Today Summary（旅途中快覽）── */
 .today-summary {
   margin: 8px var(--pp);
-  background: rgba(224,108,0,.05);
-  border: 1px solid rgba(224,108,0,.2);
+  background: rgba(200,121,10,.05);
+  border: 1px solid rgba(200,121,10,.2);
   border-radius: var(--r-card);
   overflow: hidden;
 }
@@ -1104,7 +1104,7 @@ button, input, select {
   align-items: center;
   justify-content: space-between;
   padding: 7px 12px 6px;
-  border-bottom: 1px solid rgba(224,108,0,.15);
+  border-bottom: 1px solid rgba(200,121,10,.15);
 }
 .today-summary-title {
   font-family: var(--font-display);
@@ -1125,7 +1125,7 @@ button, input, select {
   align-items: flex-start;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: 1px solid rgba(224,108,0,.08);
+  border-bottom: 1px solid rgba(200,121,10,.08);
 }
 .today-summary-item:last-child { border-bottom: none; }
 .today-summary-body { flex: 1; min-width: 0; }
