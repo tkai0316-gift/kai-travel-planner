@@ -26,15 +26,7 @@ function getActiveTrip() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
-  const IS_DEV_BYPASS =
-    window.location.hostname !== 'kai-travel-planner.pages.dev' &&
-    new URLSearchParams(location.search).get('dev') === '1';
-
-  let user = await api.getUser();
-  if (!user && IS_DEV_BYPASS) {
-    user = { id: 'dev-bypass', email: 'dev@bypass' };
-    showToast('⚡ Dev bypass 模式（快取資料）', 'warn');
-  }
+  const user = await api.getUser();
 
   setState({ user, isOnline: navigator.onLine });
 
