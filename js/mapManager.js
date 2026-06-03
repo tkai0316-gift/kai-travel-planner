@@ -66,8 +66,8 @@ export function renderTrip(trip) {
         const popup = new maplibregl.Popup({ offset: 20, maxWidth: '200px' }).setHTML(`
           <div style="font-size:12px;line-height:1.5">
             <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">${esc(day.date || '')}</div>
-            <div style="font-weight:600;color:#0f172a">${TYPE_EMOJI[day.type] || '📍'} ${esc(day.title || '')}</div>
-            ${day.note ? `<div style="margin-top:4px;color:#475569;font-size:11px">${esc(day.note)}</div>` : ''}
+            <div style="font-weight:600">${TYPE_EMOJI[day.type] || '📍'} ${esc(day.title || '')}</div>
+            ${day.note ? `<div style="margin-top:4px;color:#94a3b8;font-size:11px">${esc(day.note)}</div>` : ''}
           </div>`);
         const marker = new maplibregl.Marker({ element: el })
           .setLngLat([day.lng, day.lat])
