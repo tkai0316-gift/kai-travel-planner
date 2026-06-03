@@ -627,9 +627,16 @@ export function renderDataPanel(trips = null) {
           <label>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
               <span style="font-size:12px;color:var(--c-muted)">trips.json</span>
-              <button id="download-template-btn" class="btn btn-link" style="font-size:11px;padding:0;min-height:unset">下載填寫範本</button>
+              <button id="download-template-btn" class="btn btn-link" style="font-size:11px;padding:0;min-height:unset">下載範本</button>
             </div>
             <input type="file" id="import-trips-file" accept=".json" data-edit style="font-size:11px;color:var(--c-muted)">
+          </label>
+          <label>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:12px;color:var(--c-muted)">trips.xlsx <span style="color:var(--c-muted-lt)">（給他人填寫）</span></span>
+              <button id="download-excel-template-btn" class="btn btn-link" style="font-size:11px;padding:0;min-height:unset">下載範本</button>
+            </div>
+            <input type="file" id="import-trips-excel-file" accept=".xlsx" data-edit style="font-size:11px;color:var(--c-muted)">
           </label>
           <label>
             <div style="font-size:12px;color:var(--c-muted);margin-bottom:4px">preferences.json</div>

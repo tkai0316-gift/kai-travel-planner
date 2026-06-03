@@ -105,8 +105,10 @@ export const SEL = {
   packingCatInput: 'packing-cat-input',
 
   // Data panel
-  importTripsFile:      'import-trips-file',
-  downloadTemplateBtn:  'download-template-btn',
+  importTripsFile:          'import-trips-file',
+  downloadTemplateBtn:      'download-template-btn',
+  importTripsExcelFile:     'import-trips-excel-file',
+  downloadExcelTemplateBtn: 'download-excel-template-btn',
   importPrefsFile: 'import-prefs-file',
   exportJsonBtn:   'export-json-btn',
   exportExcelBtn:  'export-excel-btn',

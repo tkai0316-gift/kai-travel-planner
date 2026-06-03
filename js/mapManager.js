@@ -20,6 +20,12 @@ export function init(containerId) {
     attributionControl: { compact: true },
   });
 
+  map.addControl(new maplibregl.GeolocateControl({
+    positionOptions: { enableHighAccuracy: true },
+    trackUserLocation: false,
+    showAccuracyCircle: false,
+  }), 'bottom-right');
+
   map.on('error', () => {
     const container = document.getElementById(containerId);
     if (!container || container.querySelector('.map-offline-msg')) return;

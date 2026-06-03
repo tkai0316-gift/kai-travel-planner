@@ -708,6 +708,16 @@ function bindDataPanelEvents() {
 
   q(SEL.exportExcelBtn)?.addEventListener('click', exportExcel);
 
+  q(SEL.downloadExcelTemplateBtn)?.addEventListener('click', downloadExcelTemplate);
+
+  const importTripsExcelFile = q(SEL.importTripsExcelFile);
+  if (importTripsExcelFile) importTripsExcelFile.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await importExcel(file);
+    e.target.value = '';
+  });
+
   const LS_SHARE_KEY = 'ktp_share_tokens';
   function getShareTokens() { return JSON.parse(localStorage.getItem(LS_SHARE_KEY) || '[]'); }
   function saveShareTokens(arr) { localStorage.setItem(LS_SHARE_KEY, JSON.stringify(arr.slice(-10))); }
@@ -866,6 +876,185 @@ async function exportExcel() {
     download: `${trip.title}_${new Date().toISOString().slice(0,10)}.xlsx`,
   });
   a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── Excel Template Download ────────────────────────────────────────────────────
+async function downloadExcelTemplate() {
+  if (!window.ExcelJS) { showToast('ExcelJS 載入中，請稍後再試', 'warn'); return; }
+  const wb = new ExcelJS.Workbook();
+
+  const infoWs = wb.addWorksheet('行程資訊');
+  infoWs.columns = [
+    { header: '行程名稱', key: 'title', width: 22 },
+    { header: '開始日期', key: 'start_date', width: 14 },
+    { header: '結束日期', key: 'end_date', width: 14 },
+    { header: '總預算', key: 'budget_total', width: 12 },
+    { header: '幣別', key: 'base_currency', width: 8 },
+    { header: '備註', key: 'notes', width: 30 },
+  ];
+  infoWs.addRow(['日本春末行', '2026-07-01', '2026-07-07', 50000, 'TWD', '第一次去日本，以東京為主']);
+
+  const dayWs = wb.addWorksheet('日程');
+  dayWs.columns = [
+    { header: '分段名稱', key: 'seg_name', width: 16 },
+    { header: '分段開始', key: 'seg_start', width: 14 },
+    { header: '分段結束', key: 'seg_end', width: 14 },
+    { header: '日期', key: 'date', width: 14 },
+    { header: '類型', key: 'type', width: 10 },
+    { header: '標題', key: 'title', width: 30 },
+    { header: '備註', key: 'note', width: 36 },
+    { header: '緯度', key: 'lat', width: 12 },
+    { header: '經度', key: 'lng', width: 12 },
+  ];
+  dayWs.addRows([
+    ['東京段', '2026-07-01', '2026-07-04', '2026-07-01', '交通', '桃園 → 成田（NH203）', '航班 10:30 起飛，提前 2 小時到機場', 35.7681, 140.3868],
+    ['東京段', '2026-07-01', '2026-07-04', '2026-07-02', '觀光', '淺草寺 × 晴空塔', '建議早上 8 點前到淺草，人少', 35.7148, 139.7967],
+    ['東京段', '2026-07-01', '2026-07-04', '2026-07-03', '休息', '自由日', '可去秋葉原或台場', 35.6762, 139.6503],
+    ['京都段', '2026-07-04', '2026-07-07', '2026-07-04', '交通', '東京 → 京都（新幹線）', '自由席，約 2.5 小時', 34.9859, 135.7587],
+    ['京都段', '2026-07-04', '2026-07-07', '2026-07-05', '觀光', '嵐山 × 金閣寺', '', 35.0094, 135.6716],
+  ]);
+
+  const expWs = wb.addWorksheet('花費');
+  expWs.columns = [
+    { header: '日期', key: 'date', width: 14 },
+    { header: '分段名稱', key: 'seg_name', width: 16 },
+    { header: '類別', key: 'category', width: 12 },
+    { header: '金額', key: 'amount', width: 12 },
+    { header: '幣別', key: 'currency', width: 8 },
+    { header: '備註', key: 'note', width: 30 },
+  ];
+  expWs.addRows([
+    ['2026-07-01', '東京段', '交通', 15000, 'TWD', '來回機票（含稅）'],
+    ['2026-07-01', '東京段', '住宿', 4500, 'TWD', '飯店第一晚'],
+    ['2026-07-04', '京都段', '交通', 4400, 'JPY', '新幹線自由席'],
+  ]);
+
+  const helpWs = wb.addWorksheet('說明');
+  [
+    ['【填寫說明】'],
+    [''],
+    ['■ 行程資訊（第一個 sheet）'],
+    ['  填一列，代表整筆行程的基本資料。幣別可填 TWD / JPY / USD / EUR 等。'],
+    [''],
+    ['■ 日程（第二個 sheet）'],
+    ['  每一列代表一天的行程，同一分段的列填相同的「分段名稱」。'],
+    ['  類型欄填入：觀光 / 交通 / 健行 / 潛水 / 休息（其他值會視為觀光）'],
+    ['  緯度／經度可留空，匯入後在 app 內用地點搜尋補充。'],
+    [''],
+    ['■ 花費（第三個 sheet）'],
+    ['  分段名稱需和日程 sheet 的分段名稱一致，才能正確歸類。'],
+    ['  類別可自由填寫，例：交通、住宿、餐飲、門票、購物、其他。'],
+    [''],
+    ['■ 注意事項'],
+    ['  - 匯入時每筆行程皆會新增為「規劃中」狀態，不會覆蓋既有資料。'],
+    ['  - Todo 和 Packing list 欄位請匯入後在 app 內補充。'],
+    ['  - 日期格式請使用 YYYY-MM-DD（例：2026-07-01）。'],
+  ].forEach(r => helpWs.addRow(r));
+
+  [infoWs, dayWs, expWs, helpWs].forEach(ws => {
+    ws.getRow(1).font = { bold: true };
+  });
+
+  const buf = await wb.xlsx.writeBuffer();
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })),
+    download: 'trips-template.xlsx',
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── Excel Import ───────────────────────────────────────────────────────────────
+function xlsxDateToString(val) {
+  if (!val) return '';
+  if (val instanceof Date) return val.toISOString().slice(0, 10);
+  const s = String(val).trim();
+  const d = new Date(s);
+  return isNaN(d) ? s.slice(0, 10) : d.toISOString().slice(0, 10);
+}
+
+async function importExcel(file) {
+  if (!window.ExcelJS) { showToast('ExcelJS 載入中，請稍後再試', 'warn'); return; }
+  try {
+    const buf = await file.arrayBuffer();
+    const wb  = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf);
+
+    const infoWs = wb.getWorksheet('行程資訊');
+    const dayWs  = wb.getWorksheet('日程');
+    const expWs  = wb.getWorksheet('花費');
+
+    if (!dayWs) { showToast('找不到「日程」sheet，請使用官方範本', 'error'); return; }
+
+    const TYPE_MAP = { '觀光': 'sightseeing', '交通': 'transport', '健行': 'trekking', '潛水': 'diving', '休息': 'rest' };
+
+    let tripTitle = '未命名行程', tripStart = '', tripEnd = '', tripBudget = null, tripCurrency = 'TWD', tripNotes = '';
+    if (infoWs) {
+      const r = infoWs.getRow(2).values;
+      tripTitle    = String(r[1] || '未命名行程');
+      tripStart    = xlsxDateToString(r[2]);
+      tripEnd      = xlsxDateToString(r[3]);
+      tripBudget   = r[4] ? parseFloat(r[4]) : null;
+      tripCurrency = String(r[5] || 'TWD');
+      tripNotes    = String(r[6] || '');
+    }
+
+    const segMap = new Map();
+    dayWs.eachRow({ includeEmpty: false }, (row, rowNum) => {
+      if (rowNum === 1) return;
+      const vals = row.values;
+      const segName  = String(vals[1] || '主要行程');
+      const segStart = xlsxDateToString(vals[2]) || tripStart;
+      const segEnd   = xlsxDateToString(vals[3]) || tripEnd;
+      const date     = xlsxDateToString(vals[4]);
+      const type     = TYPE_MAP[String(vals[5] || '')] || 'sightseeing';
+      const title    = String(vals[6] || '');
+      const note     = String(vals[7] || '');
+      const lat      = vals[8] != null ? parseFloat(vals[8]) : null;
+      const lng      = vals[9] != null ? parseFloat(vals[9]) : null;
+      if (!date || !title) return;
+
+      if (!segMap.has(segName)) {
+        segMap.set(segName, { id: generateId(), name: segName, color: '#2C6E8A', start_date: segStart, end_date: segEnd, daily: [] });
+      }
+      segMap.get(segName).daily.push({ date, type, title, note, lat: isNaN(lat) ? null : lat, lng: isNaN(lng) ? null : lng });
+    });
+
+    const segNameToId = new Map([...segMap.entries()].map(([k, v]) => [k, v.id]));
+    const expenses = [];
+    if (expWs) {
+      expWs.eachRow({ includeEmpty: false }, (row, rowNum) => {
+        if (rowNum === 1) return;
+        const vals = row.values;
+        const date     = xlsxDateToString(vals[1]);
+        const segName  = String(vals[2] || '');
+        const category = String(vals[3] || '其他');
+        const amount   = parseFloat(vals[4]);
+        const currency = String(vals[5] || tripCurrency);
+        const note     = String(vals[6] || '');
+        if (!date || isNaN(amount)) return;
+        expenses.push({ id: generateId(), date, segment_id: segNameToId.get(segName) || null, category, amount, currency, note });
+      });
+    }
+
+    const trip = {
+      id: generateId(), title: tripTitle, status: 'planning',
+      start_date: tripStart, end_date: tripEnd,
+      budget_total: tripBudget, base_currency: tripCurrency, notes: tripNotes,
+      segments: [...segMap.values()], expenses, todo: [], packing: [],
+    };
+
+    const { user, trips: existing } = getState();
+    const merged = {
+      ...existing,
+      current_trips: [...(existing.current_trips || []), trip],
+    };
+    if (user) await api.saveTrips(user.id, merged);
+    setState({ trips: merged, activeTripId: trip.id });
+    saveCache(merged, getState().preferences);
+    showToast(`Excel 匯入成功：${trip.title}`, 'success');
+    ui.renderTripSelector(merged, trip.id);
+    renderActiveTrip();
+  } catch (err) { showToast(`Excel 匯入失敗：${err.message}`, 'error'); }
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
