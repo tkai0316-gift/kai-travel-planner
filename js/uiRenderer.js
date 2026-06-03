@@ -409,7 +409,7 @@ export function renderBudget(trip) {
           </div>
           <div class="budget-pct">${pct}% 已使用</div>` : ''}
       </div>
-      ${Object.keys(byCategory).length ? '<div><canvas id="budget-chart" height="200"></canvas></div>' : ''}
+      ${Object.keys(byCategory).length ? '<div class="chart-wrap"><canvas id="budget-chart"></canvas></div>' : ''}
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div class="section-lbl" style="margin:0">明細</div>
@@ -435,7 +435,7 @@ export function renderBudget(trip) {
           labels: Object.keys(byCategory),
           datasets: [{ data: Object.values(byCategory), backgroundColor: ['#f59e0b','#3b82f6','#22c55e','#a855f7','#ef4444','#0ea5e9','#f97316','#64748b'] }],
         },
-        options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' } } } } },
+        options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' } } } } },
       });
     }, 50);
   }

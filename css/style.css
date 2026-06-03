@@ -620,6 +620,8 @@ button, input, select {
 }
 .budget-bar-fill.over { background: var(--c-accent); }
 .budget-pct { font-family: var(--font-mono); font-size: 10px; color: var(--c-muted-lt); margin-top: 4px; letter-spacing: .03em; }
+.chart-wrap { position: relative; height: 200px; }
+@media (min-width: 768px) { .chart-wrap { height: 260px; } }
 
 .expense-row {
   display: flex;
