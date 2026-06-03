@@ -788,37 +788,3 @@ button, input, select {
   .checklist-item { min-height: 48px; }
   .today-summary-item-title { font-size: 15px; }
 }
-
-/* ── Dark Mode ── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --c-bg:            #0F172A;
-    --c-surface:       #1E293B;
-    --c-border:        #334155;
-    --c-text:          #F1F5F9;
-    --c-text-2:        #CBD5E1;
-    --c-muted:         #94A3B8;
-    --c-muted-lt:      #64748B;
-    --c-primary-light: rgba(14,165,233,.15);
-  }
-  body                        { background: #020617; }
-  #share-loading              { background: #0F172A; }
-  .modal-overlay              { background: rgba(0,0,0,.75); }
-  .auth-card                  { background: #0F172A; box-shadow: 0 4px 32px rgba(0,0,0,.6); }
-  #auth-overlay               { background: #020617; }
-  .maplibregl-popup-content   { background: #1E293B; color: #F1F5F9; box-shadow: 0 4px 16px rgba(0,0,0,.4); }
-  .trip-dropdown,
-  .place-dropdown             { background: #1E293B; border-color: #334155; }
-  .trip-dropdown li:hover,
-  .place-dropdown li:hover    { background: #334155; }
-  .form-input                 { background: #1E293B; color: #F1F5F9; }
-  .expense-form input,
-  .expense-form select        { background: #1E293B; color: #F1F5F9; }
-  .expense-del-btn,
-  .expense-edit-btn           { color: var(--c-muted); }
-  .color-swatch.selected      { outline-color: #F1F5F9; }
-  .today-summary              { background: rgba(249,115,22,.08); border-color: rgba(249,115,22,.25); }
-  .today-summary-hdr          { border-bottom-color: rgba(249,115,22,.2); }
-  .today-summary-item         { border-bottom-color: rgba(249,115,22,.12); }
-  #offline-banner             { background: #92400e; }
-}
