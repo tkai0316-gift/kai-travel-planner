@@ -55,12 +55,12 @@ button, input, select {
   flex-direction: column;
   height: 100%;
   background: var(--c-surface);
-  box-shadow: 2px 0 24px rgba(0,0,0,.10);
+  box-shadow: 4px 0 32px rgba(0,0,0,.18);
   z-index: 20;
 }
 
 #panel-content { flex: 1; overflow-y: auto; }
-#map-container { flex: 1; position: relative; }
+#map-container { flex: 1; position: relative; background: #1C2820; }
 #map { position: absolute; inset: 0; }
 .maplibregl-canvas { outline: none; }
 .maplibregl-popup-content {
@@ -72,8 +72,8 @@ button, input, select {
 
 @media (min-width: 768px) {
   #map {
-    inset: 10px 10px 10px 0;
-    border-radius: 12px;
+    inset: 12px 12px 12px 0;
+    border-radius: 14px;
   }
 }
 
