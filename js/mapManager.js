@@ -20,13 +20,13 @@ export function init(containerId) {
     attributionControl: false,
   });
 
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+
   map.addControl(new maplibregl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true },
     trackUserLocation: false,
     showAccuracyCircle: false,
   }), 'bottom-left');
-
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 
   map.on('error', () => {
     const container = document.getElementById(containerId);
