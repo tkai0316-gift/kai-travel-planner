@@ -412,7 +412,7 @@ export function renderBudget(trip) {
         <div id="expense-form-wrap"></div>
         ${expenses.length === 0
           ? '<div style="text-align:center;color:var(--c-muted-lt);font-size:13px;padding:16px 0">尚無花費記錄</div>'
-          : `<div id="expense-list">${renderExpensesBySegment(expenses, trip, currency)}</div>`
+          : `<div id="expense-list">${renderExpensesByDate(expenses, currency)}</div>`
         }
       </div>
     </div>
@@ -440,34 +440,30 @@ const ICON_EDIT_SM = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height=
 function renderExpenseRow(e, fallbackCurrency) {
   return `
     <div class="expense-row" data-expense-id="${esc(e.id)}">
-      <span class="expense-date">${esc(e.date?.slice(5) || '')}</span>
-      <span class="expense-note">${esc(e.note || e.category)}</span>
+      <span class="expense-cat-chip">${esc(e.category || '其他')}</span>
+      <span class="expense-note">${esc(e.note || '')}</span>
       <span class="expense-amount">${esc(formatCurrency(e.amount, e.currency || fallbackCurrency))}</span>
       <button class="expense-edit-btn" data-expense-id="${esc(e.id)}" data-edit title="編輯">${ICON_EDIT_SM}</button>
       <button class="expense-del-btn" data-expense-id="${esc(e.id)}" data-edit title="刪除">×</button>
     </div>`;
 }
 
-function renderExpensesBySegment(expenses, trip, currency) {
-  const segs = trip.segments || [];
-  const expBySegId = {};
-  expenses.forEach(e => { (expBySegId[e.segment_id || '__none__'] ??= []).push(e); });
+function renderExpensesByDate(expenses, currency) {
+  const dateMap = new Map();
+  expenses.forEach(e => {
+    const d = e.date || '';
+    if (!dateMap.has(d)) dateMap.set(d, []);
+    dateMap.get(d).push(e);
+  });
 
-  const groups = [
-    ...segs.filter(s => expBySegId[s.id]?.length).map(s => ({ id: s.id, name: s.name, color: s.color || '#64748b' })),
-    ...(expBySegId['__none__']?.length ? [{ id: '__none__', name: '未指定分段', color: '#94a3b8' }] : []),
-  ];
-
-  if (groups.length <= 1) return expenses.map(e => renderExpenseRow(e, currency)).join('');
-
-  return groups.map(g => {
-    const items = expBySegId[g.id];
+  return [...dateMap.entries()].map(([date, items]) => {
     const subtotal = items.reduce((s, e) => s + (e.amount || 0), 0);
+    const label = date ? esc(formatDate(date)) : '未指定日期';
     return `
-      <div class="expense-seg-group">
-        <div class="expense-seg-header">
-          <span class="expense-seg-name" style="border-left:2px solid ${esc(g.color)};padding-left:6px">${esc(g.name)}</span>
-          <span class="expense-seg-subtotal">${esc(formatCurrency(subtotal, currency))}</span>
+      <div class="expense-date-card">
+        <div class="expense-date-hdr">
+          <span class="expense-date-hdr-label">${label}</span>
+          <span class="expense-date-hdr-subtotal">${esc(formatCurrency(subtotal, currency))}</span>
         </div>
         ${items.map(e => renderExpenseRow(e, currency)).join('')}
       </div>`;
