@@ -76,17 +76,21 @@ export function openConfirm({ title = '確認', message, okLabel = '確認刪除
   okBtn.textContent = okLabel;
   okBtn.className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
   modal.classList.add('open');
+  let _downOnOverlay = false;
   function close() { modal.classList.remove('open'); }
   function handleOk()     { close(); onConfirm(); cleanup(); }
   function handleCancel() { close(); cleanup(); }
-  function handleBg(e)    { if (e.target === modal) { close(); cleanup(); } }
+  function handlePointerDown(e) { _downOnOverlay = e.target === modal; }
+  function handleBg(e)    { if (e.target === modal && _downOnOverlay) { close(); cleanup(); } }
   function cleanup() {
     okBtn.removeEventListener('click', handleOk);
     document.getElementById('confirm-cancel').removeEventListener('click', handleCancel);
+    modal.removeEventListener('pointerdown', handlePointerDown);
     modal.removeEventListener('click', handleBg);
   }
   okBtn.addEventListener('click', handleOk);
   document.getElementById('confirm-cancel').addEventListener('click', handleCancel);
+  modal.addEventListener('pointerdown', handlePointerDown);
   modal.addEventListener('click', handleBg);
 }
 
