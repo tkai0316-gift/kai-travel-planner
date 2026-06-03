@@ -230,19 +230,7 @@ function renderSegment(seg, today = '') {
   const days  = seg.daily || [];
   const isCollapsed = collapsedSegs.has(seg.id);
 
-  // Group days by date (preserving original indices for edit buttons)
-  const dateMap = new Map();
-  days.forEach((day, i) => {
-    const d = day.date || '';
-    if (!dateMap.has(d)) dateMap.set(d, []);
-    dateMap.get(d).push({ day, i });
-  });
-
-  const bodyHtml = [...dateMap.entries()].map(([date, items]) => {
-    const weatherDay = items.find(({ day }) => day.weather?.condition || day.weather?.temp)?.day;
-    return renderDaySummaryHeader(date, weatherDay, today)
-      + items.map(({ day, i }) => renderDayCard(day, i, seg.id, today)).join('');
-  }).join('');
+  const bodyHtml = days.map((day, i) => renderDayCard(day, i, seg.id, today)).join('');
 
   return `
     <div class="seg-block" data-seg-id="${esc(seg.id)}">
