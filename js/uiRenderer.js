@@ -625,7 +625,10 @@ export function renderDataPanel(trips = null) {
         <div class="section-lbl">匯入資料</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <label>
-            <div class="data-file-label" style="font-size:12px;color:var(--c-muted);margin-bottom:4px">trips.json</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <span style="font-size:12px;color:var(--c-muted)">trips.json</span>
+              <button id="download-template-btn" class="btn btn-link" style="font-size:11px;padding:0;min-height:unset">下載填寫範本</button>
+            </div>
             <input type="file" id="import-trips-file" accept=".json" data-edit style="font-size:11px;color:var(--c-muted)">
           </label>
           <label>

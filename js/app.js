@@ -641,6 +641,72 @@ function bindDataPanelEvents() {
     e.target.value = '';
   });
 
+  q(SEL.downloadTemplateBtn)?.addEventListener('click', () => {
+    const template = {
+      current_trips: [{
+        id: 'trip-tpl-001',
+        title: '行程名稱（例：日本春末行）',
+        status: 'planning',
+        start_date: '2026-07-01',
+        end_date: '2026-07-07',
+        base_currency: 'TWD',
+        budget_total: 50000,
+        notes: '這趟旅行的簡短說明',
+        segments: [{
+          id: 'seg-tpl-001',
+          name: '分段名稱（例：東京段）',
+          color: '#2C6E8A',
+          start_date: '2026-07-01',
+          end_date: '2026-07-04',
+          daily: [
+            {
+              date: '2026-07-01',
+              type: 'transport',
+              title: '出發 → 目的地',
+              note: '備註：航班號、接駁方式等',
+              lat: 25.0797, lng: 121.2342,
+              transport: { mode: 'flight', from: '桃園 TPE', to: '目的地機場', duration_hours: 3 },
+            },
+            {
+              date: '2026-07-02',
+              type: 'sightseeing',
+              title: '景點名稱 × 另一景點',
+              note: '備註：開放時間、購票方式、建議幾點到',
+              lat: 35.6762, lng: 139.6503,
+            },
+            {
+              date: '2026-07-03',
+              type: 'rest',
+              title: '自由日',
+              note: '備註：彈性安排',
+              lat: 35.6762, lng: 139.6503,
+            },
+          ],
+        }],
+        expenses: [
+          { id: 'exp-tpl-001', date: '2026-07-01', category: '交通', amount: 15000, currency: 'TWD', note: '來回機票（含稅）', segment_id: 'seg-tpl-001' },
+          { id: 'exp-tpl-002', date: '2026-07-01', category: '住宿', amount: 3500,  currency: 'TWD', note: '飯店第一晚',       segment_id: 'seg-tpl-001' },
+        ],
+        todo: [
+          { id: 'todo-tpl-001', text: '訂機票', done: false },
+          { id: 'todo-tpl-002', text: '辦理旅遊保險', done: false },
+        ],
+        packing: [
+          { id: 'pack-tpl-001', text: '護照', category: '證件', done: false },
+          { id: 'pack-tpl-002', text: '信用卡', category: '證件', done: false },
+          { id: 'pack-tpl-003', text: '行動電源', category: '3C', done: false },
+        ],
+      }],
+      past_trips: [],
+      trip_ideas: [
+        { id: 'idea-tpl-001', title: '夢想目的地', notes: '想去的原因或備註' },
+      ],
+    };
+    const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'trips-template.json' });
+    a.click(); URL.revokeObjectURL(a.href);
+  });
+
   q(SEL.exportJsonBtn)?.addEventListener('click', () => {
     const { trips } = getState();
     const blob = new Blob([JSON.stringify(trips, null, 2)], { type: 'application/json' });
