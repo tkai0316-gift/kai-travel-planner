@@ -64,6 +64,7 @@ button, input, select {
 #map { position: absolute; inset: 0; }
 .maplibregl-canvas { outline: none; }
 .maplibregl-ctrl-bottom-left { bottom: 14px; }
+.maplibregl-ctrl-bottom-right { bottom: 80px; right: 20px; }
 .maplibregl-popup-content {
   border-radius: var(--r-card);
   font-size: 13px;
