@@ -286,7 +286,7 @@ export function renderBudget(trip) {
   if (!el) return;
   if (!trip) { el.innerHTML = '<div class="empty-state">請先選擇行程</div>'; return; }
 
-  const expenses = [...(trip.expenses || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const expenses = [...(trip.expenses || [])].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   const total    = expenses.reduce((s, e) => s + (e.amount || 0), 0);
   const budget   = trip.budget_total || 0;
   const currency = trip.base_currency || 'TWD';
