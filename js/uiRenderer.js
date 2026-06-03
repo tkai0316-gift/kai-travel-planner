@@ -12,9 +12,20 @@ const CURRENCIES = [
   ['THB','泰銖'],['MYR','馬幣'],['IDR','印尼盾'],['PHP','披索'],['VND','越南盾'],
   ['CAD','加幣'],['CHF','瑞士法郎'],
 ];
-function currencySelect(id, selected = 'TWD', cls = '') {
-  const opts = CURRENCIES.map(([c, n]) => `<option value="${c}"${c === selected ? ' selected' : ''}>${c} ${n}</option>`).join('');
-  return `<select id="${id}"${cls ? ` class="${cls}"` : ''}>${opts}</select>`;
+function currencySelect(id, selected = 'TWD') {
+  const found = CURRENCIES.find(([c]) => c === selected);
+  const lbl   = found ? `${found[0]} ${found[1]}` : selected;
+  const opts  = CURRENCIES.map(([c, n]) =>
+    `<div class="cs-opt${c === selected ? ' cs-on' : ''}" data-val="${c}">${c} ${n}</div>`
+  ).join('');
+  return `<div class="cs cs-currency" id="${id}-cs">
+    <input type="hidden" id="${id}" value="${esc(selected)}">
+    <button class="cs-btn" type="button"><span class="cs-val">${esc(lbl)}</span><span class="cs-arr">▾</span></button>
+    <div class="cs-opts">
+      <input class="cs-search-input" type="text" placeholder="搜尋..." autocomplete="off">
+      <div class="cs-opts-list">${opts}</div>
+    </div>
+  </div>`;
 }
 
 const ICON_CHEVRON = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
@@ -722,7 +733,7 @@ export function renderTripModal(trip) {
       </div>
       <div class="form-row">
         <label class="form-label">幣別</label>
-        ${currencySelect('tm-currency', t.base_currency || 'TWD', 'form-input')}
+        ${currencySelect('tm-currency', t.base_currency || 'TWD')}
       </div>
     </div>
     <div class="form-row">

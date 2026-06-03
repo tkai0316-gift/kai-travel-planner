@@ -792,6 +792,9 @@ button, input, select {
 .cs-opt { padding: 6px 10px; font-size: 12px; cursor: pointer; color: var(--c-text); }
 .cs-opt:hover { background: var(--c-border); }
 .cs-opt.cs-on { color: var(--c-primary); font-weight: 600; }
+.cs-search-input { width: 100%; padding: 6px 10px; font-size: 12px; font-family: inherit; border: none; border-bottom: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-text); outline: none; }
+.cs-opts-list { max-height: 160px; overflow-y: auto; }
+.expense-form-row .cs-currency { flex: none; width: 120px; }
 .pref-input { width: 100%; font-size: 12px; font-family: inherit; border: 1.5px solid var(--c-border); border-radius: var(--r-btn); padding: 6px 10px; background: var(--c-surface); color: var(--c-text); outline: none; box-sizing: border-box; }
 .pref-input:focus { border-color: var(--c-primary); }
 .tag-wrap { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; align-items: center; min-height: 28px; }

@@ -887,8 +887,49 @@ function bindDataPanelEvents() {
   }
 }
 
+// ── Currency Dropdown ─────────────────────────────────────────────────────────
+function bindCsDropdown(wrapperId) {
+  const wrap   = q(wrapperId);
+  if (!wrap) return;
+  const btn    = wrap.querySelector('.cs-btn');
+  const search = wrap.querySelector('.cs-search-input');
+  const list   = wrap.querySelector('.cs-opts-list');
+  const hidden = wrap.querySelector('input[type="hidden"]');
+  const valLbl = wrap.querySelector('.cs-val');
+
+  function filterOpts(query) {
+    const lq = query.toLowerCase();
+    list?.querySelectorAll('.cs-opt').forEach(opt => {
+      opt.style.display = opt.textContent.toLowerCase().includes(lq) ? '' : 'none';
+    });
+  }
+
+  btn?.addEventListener('click', e => {
+    e.stopPropagation();
+    const opening = !wrap.classList.contains('open');
+    wrap.classList.toggle('open');
+    if (opening) {
+      if (search) { search.value = ''; filterOpts(''); setTimeout(() => search.focus(), 50); }
+      const close = ev => { if (!wrap.contains(ev.target)) { wrap.classList.remove('open'); document.removeEventListener('click', close); } };
+      document.addEventListener('click', close);
+    }
+  });
+
+  search?.addEventListener('input', () => filterOpts(search.value));
+
+  list?.addEventListener('click', e => {
+    const opt = e.target.closest('.cs-opt');
+    if (!opt) return;
+    if (hidden) hidden.value = opt.dataset.val;
+    if (valLbl) valLbl.textContent = opt.textContent;
+    list.querySelectorAll('.cs-opt').forEach(o => o.classList.toggle('cs-on', o === opt));
+    wrap.classList.remove('open');
+  });
+}
+
 // ── Expense Form ──────────────────────────────────────────────────────────────
 function bindExpenseFormEvents(trip, existingExp = null) {
+  bindCsDropdown('ef-currency-cs');
   const cancelBtn = q(SEL.efCancel);
   const saveBtn   = q(SEL.efSave);
   if (cancelBtn) cancelBtn.addEventListener('click', () => {
@@ -1189,6 +1230,7 @@ function bindAuthEvents() {
 // ── Trip Modal ────────────────────────────────────────────────────────────────
 function openTripModal(trip) {
   ui.renderTripModal(trip);
+  bindCsDropdown('tm-currency-cs');
   const tripId = trip?.id || null;
 
   const overlay = q(SEL.tripModal);
