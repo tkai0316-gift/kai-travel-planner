@@ -17,7 +17,7 @@ export function init(containerId) {
     style: STYLE_URL,
     center: [20, 20],
     zoom: 1.5,
-    attributionControl: { compact: true },
+    attributionControl: false,
   });
 
   map.addControl(new maplibregl.GeolocateControl({
@@ -25,6 +25,8 @@ export function init(containerId) {
     trackUserLocation: false,
     showAccuracyCircle: false,
   }), 'bottom-left');
+
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 
   map.on('error', () => {
     const container = document.getElementById(containerId);
