@@ -1146,23 +1146,27 @@ button, input, select {
   .today-summary-item-title { font-size: 15px; }
 }
 
-/* ── Desktop type-scale (+1px across content) ── */
+/* ── Desktop type-scale ── */
 @media (min-width: 768px) {
-  #left-panel            { font-size: 14px; }
-  .trip-title            { font-size: 15px; }
-  .seg-name              { font-size: 13px; }
-  .seg-dates-sm          { font-size: 11px; }
+  #left-panel            { font-size: 15px; }
+  .trip-title            { font-size: 17px; }
+  .trip-dates            { font-size: 13px; }
+  .seg-name              { font-size: 14px; }
+  .seg-dates-sm          { font-size: 12px; }
   .tab-btn               { font-size: 13px; }
-  .day-title             { font-size: 14px; }
-  .day-date              { font-size: 11px; }
-  .day-note              { font-size: 12px; }
-  .day-transport         { font-size: 12px; }
-  .packing-cat-label     { font-size: 11px; }
-  .checklist-text        { font-size: 14px; }
+  .day-title             { font-size: 15px; }
+  .day-date              { font-size: 12px; }
+  .day-note              { font-size: 13px; }
+  .day-transport         { font-size: 13px; }
+  .packing-cat-label     { font-size: 12px; }
+  .checklist-text        { font-size: 15px; }
+  .checklist-item        { min-height: 42px; }
   .expense-note          { font-size: 13px; }
   .expense-amount        { font-size: 13px; }
-  .expense-date-hdr-label   { font-size: 12px; }
+  .expense-cat-chip      { font-size: 11px; }
+  .expense-date-hdr-label    { font-size: 12px; }
   .expense-date-hdr-subtotal { font-size: 12px; }
-  .today-summary-item-title { font-size: 14px; }
-  .budget-amount         { font-size: 26px; }
+  .today-summary-item-title  { font-size: 15px; }
+  .budget-amount         { font-size: 28px; }
+  .section-lbl           { font-size: 11px; }
 }
