@@ -236,6 +236,10 @@ button, input, select {
   color: var(--c-muted);
   transition: color .15s, background .15s;
   min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
 }
 .tab-btn.active {
   background: var(--c-primary-light);

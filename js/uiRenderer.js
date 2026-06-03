@@ -516,8 +516,15 @@ export function renderPrefs(prefs) {
     return;
   }
   const bl  = prefs.bucket_list || [];
+  const PREF_LABELS = {
+    adaptable: '彈性自由', budget: '節省', comfort: '舒適', luxury: '豪華', adventure: '冒險戶外',
+    moderate: '適中', varies_by_destination: '依目的地', high: '高端',
+    slow: '慢步調', fast: '緊湊',
+    solo: '獨旅', couple: '雙人', family: '家庭', group: '團體',
+  };
+  const localize = v => PREF_LABELS[v] || v;
   const row = (label, val) => val
-    ? `<div class="pref-row"><span class="pref-label">${esc(label)}</span><span class="pref-value">${esc(Array.isArray(val) ? val.join(', ') : val)}</span></div>`
+    ? `<div class="pref-row"><span class="pref-label">${esc(label)}</span><span class="pref-value">${esc(Array.isArray(val) ? val.map(localize).join('、') : localize(String(val)))}</span></div>`
     : '';
 
   el.innerHTML = `
