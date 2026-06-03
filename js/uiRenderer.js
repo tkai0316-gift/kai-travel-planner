@@ -43,7 +43,12 @@ export function renderTripSelector(trips, activeTripId) {
   const list = document.getElementById('trip-selector-list');
   if (!btn || !list) return;
   const all = [...(trips.current_trips || []), ...(trips.past_trips || [])]
-    .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
+    .sort((a, b) => {
+      const today = Date.now();
+      const da = Math.abs(new Date(a.start_date || '').getTime() - today);
+      const db = Math.abs(new Date(b.start_date || '').getTime() - today);
+      return da - db;
+    });
   if (all.length === 0) { if (label) label.textContent = '（尚無行程）'; list.innerHTML = ''; return; }
   const active = all.find(t => t.id === activeTripId) || all[0];
   if (label) label.textContent = active ? active.title : '';
