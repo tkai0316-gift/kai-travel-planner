@@ -604,12 +604,22 @@ function bindDataPanelEvents() {
       const data = JSON.parse(await file.text());
       const v = validateTripsJson(data);
       if (!v.ok) { showToast(`格式錯誤：${v.error}`, 'error'); return; }
-      const { user } = getState();
-      if (user) await api.saveTrips(user.id, data);
-      setState({ trips: data, activeTripId: data.current_trips[0]?.id || null });
-      saveCache(data, getState().preferences);
-      showToast('行程匯入成功', 'success');
-      ui.renderTripSelector(data, getState().activeTripId);
+      const { user, trips: existing } = getState();
+      const mergeById = (cur, inc) => {
+        const ids = new Set(cur.map(t => t.id));
+        return [...cur, ...inc.filter(t => !ids.has(t.id))];
+      };
+      const merged = {
+        current_trips: mergeById(existing.current_trips || [], data.current_trips || []),
+        past_trips:    mergeById(existing.past_trips    || [], data.past_trips    || []),
+        trip_ideas:    mergeById(existing.trip_ideas    || [], data.trip_ideas    || []),
+      };
+      const added = (data.current_trips?.length || 0) + (data.past_trips?.length || 0);
+      if (user) await api.saveTrips(user.id, merged);
+      setState({ trips: merged, activeTripId: getState().activeTripId || merged.current_trips[0]?.id || null });
+      saveCache(merged, getState().preferences);
+      showToast(`已新增 ${added} 筆行程`, 'success');
+      ui.renderTripSelector(merged, getState().activeTripId);
       renderActiveTrip();
     } catch (err) { showToast(`匯入失敗：${err.message}`, 'error'); }
     e.target.value = '';
