@@ -259,24 +259,6 @@ function renderSegment(seg, today = '') {
   `;
 }
 
-function renderDaySummaryHeader(date, weatherDay, today = '') {
-  const isToday = today && date === today;
-  const w = weatherDay?.weather;
-  const weatherHtml = w && (w.condition || w.temp) ? `
-    <div class="day-summary-weather">
-      ${w.condition ? `<span class="day-weather-cond">${esc(w.condition)}</span>` : ''}
-      ${w.temp      ? `<span class="day-weather-temp">${esc(w.temp)}</span>`      : ''}
-      ${w.pop       ? `<span class="day-weather-pop">☔ ${esc(w.pop)}</span>`      : ''}
-      ${w.clothing  ? `<span class="day-weather-clothing">💡 ${esc(w.clothing)}</span>` : ''}
-    </div>` : '';
-
-  return `
-    <div class="day-summary-header${isToday ? ' is-today-summary' : ''}">
-      <span class="day-summary-date">${esc(formatDate(date))}${isToday ? '<span class="today-badge">今</span>' : ''}</span>
-      ${weatherHtml}
-    </div>`;
-}
-
 function renderDayCard(day, dayIndex, segId, today = '') {
   const isTransport = day.type === 'transport';
   const isToday = today && day.date === today;
@@ -562,10 +544,16 @@ export function renderPrefsEdit(prefs) {
   const BUDGET_OPTS    = ['budget','moderate','varies_by_destination','high'];
   const PACE_OPTS      = ['slow','moderate','fast'];
   const COMPANION_OPTS = ['solo','couple','family','group'];
+  const OPT_LABELS = {
+    adaptable: '彈性自由', budget: '節省', comfort: '舒適', luxury: '豪華', adventure: '冒險戶外',
+    moderate: '適中', varies_by_destination: '依目的地', high: '高端',
+    slow: '慢步調', fast: '緊湊',
+    solo: '獨旅', couple: '雙人', family: '家庭', group: '團體',
+  };
 
   const sel = (id, opts, val) =>
     `<select id="${id}" class="pref-select">${opts.map(o =>
-      `<option value="${o}"${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
+      `<option value="${o}"${val===o?' selected':''}>${OPT_LABELS[o] || o}</option>`).join('')}</select>`;
 
   const erow = (label, content) =>
     `<div class="pref-edit-row"><span class="pref-label">${label}</span>${content}</div>`;
