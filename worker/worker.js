@@ -5,7 +5,7 @@ export default {
     const allowedOrigin = env.ALLOWED_ORIGIN || '';
     const corsHeaders = {
       'Access-Control-Allow-Origin': allowedOrigin || origin,
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     };
 
@@ -38,6 +38,13 @@ export default {
       const raw = await env.KV.get(`share:${match[1]}`);
       if (!raw) return new Response(JSON.stringify({ error: 'Share link expired or not found' }), { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
       return new Response(raw, { headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+    }
+
+    // DELETE /api/share/:id
+    const delMatch = url.pathname.match(/^\/api\/share\/([a-z0-9_-]+)$/i);
+    if (request.method === 'DELETE' && delMatch) {
+      await env.KV.delete(`share:${delMatch[1]}`);
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
     return new Response('Not Found', { status: 404 });

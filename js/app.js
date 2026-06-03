@@ -650,6 +650,42 @@ function bindDataPanelEvents() {
 
   q(SEL.exportExcelBtn)?.addEventListener('click', exportExcel);
 
+  const LS_SHARE_KEY = 'ktp_share_tokens';
+  function getShareTokens() { return JSON.parse(localStorage.getItem(LS_SHARE_KEY) || '[]'); }
+  function saveShareTokens(arr) { localStorage.setItem(LS_SHARE_KEY, JSON.stringify(arr.slice(-10))); }
+
+  function renderShareTokensList() {
+    const el = q(SEL.shareTokensList);
+    if (!el) return;
+    const tokens = getShareTokens();
+    if (!tokens.length) { el.innerHTML = ''; return; }
+    el.innerHTML = tokens.map(t => `
+      <div class="share-token-row" data-id="${esc(t.id)}">
+        <div class="share-url-box">${esc(t.url)}</div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="btn btn-link share-copy-btn" style="font-size:12px">複製</button>
+          <button class="btn btn-danger share-revoke-btn" style="font-size:12px">撤銷連結</button>
+        </div>
+      </div>`).join('');
+    el.querySelectorAll('.share-copy-btn').forEach(btn => {
+      const id = btn.closest('[data-id]').dataset.id;
+      const token = tokens.find(t => t.id === id);
+      btn.onclick = () => navigator.clipboard.writeText(token.url).then(() => showToast('已複製', 'success'));
+    });
+    el.querySelectorAll('.share-revoke-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.closest('[data-id]').dataset.id;
+        try {
+          btn.disabled = true; btn.textContent = '撤銷中...';
+          await api.deleteShare(id);
+          saveShareTokens(getShareTokens().filter(t => t.id !== id));
+          renderShareTokensList();
+          showToast('連結已撤銷', 'success');
+        } catch (err) { showToast(err.message, 'error'); btn.disabled = false; btn.textContent = '撤銷連結'; }
+      };
+    });
+  }
+
   q(SEL.shareBtn)?.addEventListener('click', async () => {
     const shareBtn = q(SEL.shareBtn);
     try {
@@ -658,15 +694,13 @@ function bindDataPanelEvents() {
       const trip = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === activeTripId);
       const { id } = await api.createShare(trip, preferences);
       const url = `${location.origin}/share.html?id=${id}`;
-      const resultEl = q(SEL.shareResult);
-      const urlEl    = q(SEL.shareUrl);
-      if (resultEl) resultEl.style.display = 'block';
-      if (urlEl) urlEl.textContent = url;
-      const copyBtn = q(SEL.copyShareBtn);
-      if (copyBtn) copyBtn.onclick = () => navigator.clipboard.writeText(url).then(() => showToast('已複製', 'success'));
+      saveShareTokens([...getShareTokens(), { id, url }]);
+      renderShareTokensList();
+      showToast('分享連結已建立', 'success');
     } catch (err) { showToast(`分享失敗：${err.message}`, 'error'); }
     finally { shareBtn.disabled = false; shareBtn.textContent = '建立唯讀分享連結（TTL 30天）'; }
   });
+  renderShareTokensList();
 
   // Trip Ideas
   const ideaAddBtn    = q(SEL.ideaAddBtn);

@@ -74,3 +74,8 @@ export async function fetchShare(shareId) {
   if (!res.ok) throw new Error('分享連結已失效或不存在');
   return res.json();
 }
+
+export async function deleteShare(shareId) {
+  const res = await fetch(`${WORKER_URL}/api/share/${shareId}`, { method: 'DELETE' });
+  if (!res.ok && res.status !== 404) throw new Error('撤銷失敗');
+}

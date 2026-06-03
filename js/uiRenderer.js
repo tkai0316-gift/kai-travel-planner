@@ -632,11 +632,7 @@ export function renderDataPanel(trips = null) {
       <div>
         <div class="section-lbl">分享（唯讀）</div>
         <button id="share-btn" class="btn btn-primary" style="width:100%" data-edit>建立唯讀分享連結（TTL 30天）</button>
-        <div id="share-result" style="display:none;margin-top:8px">
-          <div style="font-size:11px;color:var(--c-muted-lt);margin-bottom:4px">分享連結：</div>
-          <div id="share-url" class="share-url-box"></div>
-          <button id="copy-share-btn" class="btn btn-link" style="margin-top:4px">複製連結</button>
-        </div>
+        <div id="share-tokens-list" style="margin-top:8px"></div>
       </div>
     </div>
   `;

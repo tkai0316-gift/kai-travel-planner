@@ -113,6 +113,7 @@ export const SEL = {
   shareResult:     'share-result',
   shareUrl:        'share-url',
   copyShareBtn:    'copy-share-btn',
+  shareTokensList: 'share-tokens-list',
   ideaAddBtn:      'idea-add-btn',
   ideaAddInput:    'idea-add-input',
   ideaNotesInput:  'idea-notes-input',
