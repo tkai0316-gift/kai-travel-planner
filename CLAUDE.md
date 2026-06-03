@@ -28,6 +28,14 @@
 3. `npx wrangler secret put ALLOWED_ORIGIN`（設為 Pages URL）
 4. `npx wrangler deploy`
 
+## Linting
+
+- `npm run lint` — 手動跑 ESLint（CI 在 push 後自動跑）
+- `npm run lint:fix` — 自動修可修的問題（eqeqeq 需手動）
+- Pre-commit hook 自動攔截，壞 code commit 不了
+- `no-console`：console.log 禁止，console.warn/error 保留
+- `== null` / `!= null` 為允許的慣用寫法（null: ignore 已設定）
+
 ## JS 實作規範（Vanilla JS 專屬，新功能必讀）
 
 **DOM Selector**：所有元素 ID 必須先加進 `js/selectors.js` 的 `SEL` 物件，再透過 `q(SEL.xxx)` 取用。禁止在 `app.js` 或 `test-full.mjs` 直接寫裸字串如 `getElementById('tm-title')`。Playwright 測試一律用 `CSEL.xxx`（自動加 `#` 前綴）。
