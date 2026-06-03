@@ -28,6 +28,22 @@
 3. `npx wrangler secret put ALLOWED_ORIGIN`（設為 Pages URL）
 4. `npx wrangler deploy`
 
+## JS 實作規範（Vanilla JS 專屬，新功能必讀）
+
+**DOM Selector**：所有元素 ID 必須先加進 `js/selectors.js` 的 `SEL` 物件，再透過 `q(SEL.xxx)` 取用。禁止在 `app.js` 或 `test-full.mjs` 直接寫裸字串如 `getElementById('tm-title')`。Playwright 測試一律用 `CSEL.xxx`（自動加 `#` 前綴）。
+
+**事件綁定規則**：
+- 每次 render 後重新綁定的區塊（如 `bindChecklistEvents`）→ 用 `AbortController`，render 前先 `.abort()` 清掉上一輪，再建新的 `signal` 傳給所有 `addEventListener`。
+- 只 mount 一次的大容器（如 `budget-content`、`timeline-content`）→ 用 **event delegation**，在 `bindAppEvents()` 只綁一次，靠 `e.target.closest()` 判斷來源。
+- 禁止在 render loop 裡對穩定 DOM 元素重複 `addEventListener`（會累積）。
+
+**UI 狀態**：dropdown 開關、tab 狀態等 UI 狀態一律存在 JS 模組變數（如 `let _selectorOpen = false`），禁止用 `element.style.display !== 'none'` 或讀 class 來反查狀態。`store.js` 的 `state` 只放資料層狀態，不放 UI 狀態。
+
+**新 UI 功能動工前三問**：
+1. 這個元素的 ID 加進 `selectors.js` 了嗎？
+2. 事件是 delegation（穩定容器）還是 AbortController（重渲染區塊）？
+3. 這個狀態存在 JS 變數，還是不小心藏在 DOM 裡？
+
 ## 重要設計決策
 - XSS 防護：所有 DOM 寫入統一透過 `esc()` 或 `textContent`，集中在 `utils.js`
 - 離線模式：監聽 `navigator.onLine`；離線時鎖定所有 `[data-edit]` 元素
