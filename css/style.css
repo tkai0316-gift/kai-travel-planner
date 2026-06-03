@@ -185,6 +185,10 @@ button, input, select {
 }
 .day-tabs-container:empty { display: none; }
 .day-tabs-container::-webkit-scrollbar { display: none; }
+@media (min-width: 768px) {
+  .day-tabs-container { cursor: grab; user-select: none; }
+  .day-tabs-container.grabbing { cursor: grabbing; }
+}
 .day-tab-btn {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 1px; flex-shrink: 0; min-width: 48px;

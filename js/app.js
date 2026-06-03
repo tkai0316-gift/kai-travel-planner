@@ -273,6 +273,33 @@ function bindAppEvents() {
     });
   });
 
+  // Desktop drag-to-scroll for day tabs
+  const dayTabsEl = document.getElementById('day-tabs-container');
+  if (dayTabsEl) {
+    let ptrDown = false, startX = 0, scrollLeft = 0, hasDragged = false;
+    dayTabsEl.addEventListener('pointerdown', e => {
+      if (e.button !== 0) return;
+      ptrDown = true; hasDragged = false;
+      startX = e.clientX; scrollLeft = dayTabsEl.scrollLeft;
+      dayTabsEl.setPointerCapture(e.pointerId);
+      dayTabsEl.classList.add('grabbing');
+    });
+    dayTabsEl.addEventListener('pointermove', e => {
+      if (!ptrDown) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 4) hasDragged = true;
+      dayTabsEl.scrollLeft = scrollLeft - dx;
+    });
+    dayTabsEl.addEventListener('pointerup', () => {
+      ptrDown = false;
+      dayTabsEl.classList.remove('grabbing');
+    });
+    // 拖拉時攔截 click，防止誤觸 day-tab-btn
+    dayTabsEl.addEventListener('click', e => {
+      if (hasDragged) { e.stopPropagation(); hasDragged = false; }
+    }, true);
+  }
+
   // Day tabs — event delegation on #panel-trips (stable across re-renders)
   q('panel-trips')?.addEventListener('click', e => {
     const btn = e.target.closest('.day-tab-btn');
