@@ -1,4 +1,4 @@
-const CACHE_KEY = 'kai_travel_v1';
+const LEGACY_CACHE_KEY = 'kai_travel_v1';
 const VALID_TYPES = new Set(['sightseeing', 'transport', 'trekking', 'diving', 'rest']);
 const VALID_MODES = new Set(['flight', 'overnight_train', 'bus', 'ferry', 'car', 'other']);
 
@@ -40,15 +40,24 @@ export function validateTripsJson(data) {
   return { ok: true };
 }
 
+function cacheKey() {
+  return state.user ? `kai_travel_v1_${state.user.id}` : null;
+}
+
 export function saveCache(trips, prefs) {
+  const key = cacheKey();
+  if (!key) return;
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), trips, prefs }));
+    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), trips, prefs }));
+    localStorage.removeItem(LEGACY_CACHE_KEY);
   } catch (e) { console.warn('cache write failed', e); }
 }
 
 export function loadCache() {
+  const key = cacheKey();
+  if (!key) return null;
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
