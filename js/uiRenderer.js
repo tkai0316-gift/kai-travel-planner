@@ -517,11 +517,11 @@ export function renderExpenseForm(trip, exp = null) {
         </select>
       </div>
       <div class="expense-form-row">
-        <input type="number" id="ef-amount" value="${exp ? exp.amount : ''}" placeholder="金額" min="0">
+        <input type="number" id="ef-amount" value="${exp ? exp.amount : ''}" placeholder="金額" min="0" autocomplete="off">
         ${currencySelect('ef-currency', currency)}
       </div>
       ${segments.length ? `<select id="ef-segment"><option value="">（不指定分段）</option>${segments.map(s => `<option value="${esc(s.id)}"${exp?.segment_id === s.id ? ' selected' : ''}>${esc(s.name)}</option>`).join('')}</select>` : ''}
-      <input type="text" id="ef-note" value="${exp ? esc(exp.note || '') : ''}" placeholder="備註（選填）">
+      <input type="text" id="ef-note" value="${exp ? esc(exp.note || '') : ''}" placeholder="備註（選填）" autocomplete="off">
       <div class="expense-form-row">
         <button id="ef-save" class="btn btn-primary" style="flex:1">${exp ? '更新' : '儲存'}</button>
         <button id="ef-cancel" class="btn btn-ghost" style="flex:1">取消</button>
