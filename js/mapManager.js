@@ -97,12 +97,6 @@ export function renderTrip(trip) {
 
     if (features.length > 0) {
       map.addSource('routes', { type: 'geojson', data: { type: 'FeatureCollection', features } });
-      // 白色光暈墊底，讓虛線在各種地圖背景上都清晰
-      map.addLayer({
-        id: 'route-line-halo', type: 'line', source: 'routes',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': '#ffffff', 'line-width': 7, 'line-opacity': 0.6 },
-      });
       map.addLayer({
         id: 'route-line', type: 'line', source: 'routes',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
