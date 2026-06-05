@@ -682,22 +682,53 @@ function bindDataPanelEvents() {
       const v = validateTripsJson(data);
       if (!v.ok) { showToast(`格式錯誤：${v.error}`, 'error'); return; }
       const { user, trips: existing } = getState();
-      const mergeById = (cur, inc) => {
-        const ids = new Set(cur.map(t => t.id));
-        return [...cur, ...inc.filter(t => !ids.has(t.id))];
+
+      const findConflicts = (cur, inc) => inc.filter(t => cur.some(c => c.id === t.id));
+      const conflicts = [
+        ...findConflicts(existing.current_trips || [], data.current_trips || []),
+        ...findConflicts(existing.past_trips    || [], data.past_trips    || []),
+      ];
+
+      const applyMerge = (replace) => {
+        const mergeList = (cur, inc) => {
+          if (replace) {
+            const incIds = new Set(inc.map(t => t.id));
+            return [...cur.filter(t => !incIds.has(t.id)), ...inc];
+          }
+          const ids = new Set(cur.map(t => t.id));
+          return [...cur, ...inc.filter(t => !ids.has(t.id))];
+        };
+        const merged = {
+          current_trips: mergeList(existing.current_trips || [], data.current_trips || []),
+          past_trips:    mergeList(existing.past_trips    || [], data.past_trips    || []),
+          trip_ideas:    mergeList(existing.trip_ideas    || [], data.trip_ideas    || []),
+        };
+        const incomingCount = (data.current_trips?.length || 0) + (data.past_trips?.length || 0);
+        const newCount = incomingCount - conflicts.length;
+        api.saveTrips(user?.id, merged).catch(() => {});
+        setState({ trips: merged, activeTripId: getState().activeTripId || merged.current_trips[0]?.id || null });
+        saveCache(merged, getState().preferences);
+        const msg = replace
+          ? `已取代 ${conflicts.length} 筆、新增 ${newCount} 筆行程`
+          : `已新增 ${newCount} 筆行程${conflicts.length ? `，${conflicts.length} 筆已存在略過` : ''}`;
+        showToast(msg, 'success');
+        ui.renderTripSelector(merged, getState().activeTripId);
+        renderActiveTrip();
       };
-      const merged = {
-        current_trips: mergeById(existing.current_trips || [], data.current_trips || []),
-        past_trips:    mergeById(existing.past_trips    || [], data.past_trips    || []),
-        trip_ideas:    mergeById(existing.trip_ideas    || [], data.trip_ideas    || []),
-      };
-      const added = (data.current_trips?.length || 0) + (data.past_trips?.length || 0);
-      if (user) await api.saveTrips(user.id, merged);
-      setState({ trips: merged, activeTripId: getState().activeTripId || merged.current_trips[0]?.id || null });
-      saveCache(merged, getState().preferences);
-      showToast(`已新增 ${added} 筆行程`, 'success');
-      ui.renderTripSelector(merged, getState().activeTripId);
-      renderActiveTrip();
+
+      if (conflicts.length > 0) {
+        const names = conflicts.map(t => `「${t.title}」`).join('、');
+        openConfirm({
+          title: '行程已存在',
+          message: `${names} 已存在，要用匯入版本取代嗎？`,
+          okLabel: '取代',
+          danger: false,
+          onConfirm: () => applyMerge(true),
+          onCancel:  () => applyMerge(false),
+        });
+        return;
+      }
+      applyMerge(false);
     } catch (err) { showToast(`匯入失敗：${err.message}`, 'error'); }
     e.target.value = '';
   });

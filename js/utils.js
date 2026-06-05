@@ -61,9 +61,9 @@ export function generateId(prefix = 'id') {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function openConfirm({ title = '確認', message, okLabel = '確認刪除', danger = true, onConfirm }) {
+export function openConfirm({ title = '確認', message, okLabel = '確認刪除', danger = true, onConfirm, onCancel }) {
   const modal = document.getElementById('confirm-modal');
-  if (!modal) { if (window.confirm(message)) onConfirm(); return; }
+  if (!modal) { if (window.confirm(message)) onConfirm(); else onCancel?.(); return; }
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-message').textContent = message;
   const okBtn = document.getElementById('confirm-ok');
@@ -72,7 +72,7 @@ export function openConfirm({ title = '確認', message, okLabel = '確認刪除
   modal.classList.add('open');
   function close() { modal.classList.remove('open'); }
   function handleOk()     { close(); onConfirm(); cleanup(); }
-  function handleCancel() { close(); cleanup(); }
+  function handleCancel() { close(); onCancel?.(); cleanup(); }
   function cleanup() {
     okBtn.removeEventListener('click', handleOk);
     document.getElementById('confirm-cancel').removeEventListener('click', handleCancel);
