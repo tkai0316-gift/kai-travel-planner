@@ -1,7 +1,7 @@
 import { esc } from './utils.js';
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 const TYPE_COLORS = {
-  sightseeing: '#f59e0b', transport: '#94a3b8', trekking: '#22c55e', diving: '#3b82f6', rest: '#a855f7',
+  sightseeing: '#d97706', transport: '#475569', trekking: '#16a34a', diving: '#1d4ed8', rest: '#7c3aed',
 };
 const TYPE_EMOJI = {
   sightseeing: '🏛', transport: '✈', trekking: '🥾', diving: '🤿', rest: '🏨',
