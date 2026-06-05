@@ -1165,15 +1165,89 @@ button, input, select {
 
 /* ── Mobile Readability ── */
 @media (max-width: 767px) {
-  .day-title      { font-size: 15px; }
-  .day-date       { font-size: 11px; }
-  .day-note       { font-size: 12px; }
-  .day-transport  { font-size: 12px; }
-  .day-card       { padding-top: 11px; padding-bottom: 11px; }
-  .seg-name       { font-size: 13px; }
-  .checklist-text { font-size: 15px; }
-  .checklist-item { min-height: 48px; }
-  .today-summary-item-title { font-size: 15px; }
+  /* Panel header */
+  .panel-title                  { font-size: 15px; }
+  .trip-sel-btn                 { font-size: 12px; }
+
+  /* Trip header */
+  .trip-title                   { font-size: 15px; }
+  .trip-dates                   { font-size: 12px; }
+  .trip-stat-chip               { font-size: 12px; padding: 4px 10px; }
+  .trip-notes                   { font-size: 13px; }
+
+  /* Main tabs */
+  .tab-btn                      { font-size: 13px; min-height: 44px; }
+
+  /* Day tabs strip */
+  .day-tab-btn                  { min-height: 42px; padding: 6px 10px; }
+  .day-tab-num                  { font-size: 12px; }
+  .day-tab-date                 { font-size: 11px; }
+
+  /* Segment */
+  .seg-name                     { font-size: 13px; }
+  .seg-dates-sm                 { font-size: 12px; }
+
+  /* Day cards */
+  .day-title                    { font-size: 15px; }
+  .day-date                     { font-size: 12px; }
+  .day-note                     { font-size: 12px; }
+  .day-transport                { font-size: 12px; }
+  .day-card                     { padding-top: 11px; padding-bottom: 11px; }
+  .today-badge                  { font-size: 11px; }
+  .day-summary-date             { font-size: 12px; }
+  .day-weather-cond             { font-size: 13px; }
+  .day-weather-temp             { font-size: 13px; }
+  .day-weather-pop              { font-size: 12px; }
+  .day-weather-clothing         { font-size: 12px; }
+  .day-weather                  { font-size: 12px; }
+  .today-weather                { font-size: 12px; }
+  .idea-item-notes              { font-size: 12px; }
+  .bucket-note                  { font-size: 12px; }
+
+  /* Checklist */
+  .checklist-header-title       { font-size: 13px; }
+  .checklist-count              { font-size: 12px; }
+  .checklist-text               { font-size: 15px; }
+  .checklist-item               { min-height: 48px; }
+  .packing-cat-label            { font-size: 12px; }
+  .checklist-del-btn            { min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; opacity: 0.6; }
+
+  /* Today Summary */
+  .today-summary-title          { font-size: 12px; }
+  .today-summary-day            { font-size: 12px; }
+  .today-summary-item-title     { font-size: 15px; }
+  .today-summary-item-note      { font-size: 12px; }
+  .today-summary-seg            { font-size: 12px; }
+
+  /* Expenses */
+  .expense-date                 { font-size: 12px; width: 60px; }
+  .expense-note                 { font-size: 13px; }
+  .expense-amount               { font-size: 13px; }
+  .expense-cat-chip             { font-size: 12px; }
+  .expense-date-hdr-label       { font-size: 12px; }
+  .expense-date-hdr-subtotal    { font-size: 13px; }
+  .expense-del-btn,
+  .expense-edit-btn             { min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; opacity: 0.6; }
+
+  /* Budget */
+  .budget-total-lbl             { font-size: 13px; }
+  .budget-pct                   { font-size: 12px; }
+  .budget-converted-note        { font-size: 12px; }
+  .budget-rate-link             { font-size: 12px; }
+
+  /* Global labels */
+  .section-lbl                  { font-size: 12px; }
+  .badge                        { font-size: 12px; padding: 3px 10px; }
+
+  /* Forms */
+  .form-label                   { font-size: 12px; }
+  .modal-title                  { font-size: 16px; }
+  .pref-row                     { font-size: 13px; }
+
+  /* iOS zoom 防護：所有真實 input/select/textarea 字體 >= 16px，防止 Safari 自動放大 */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea                      { font-size: 16px !important; }
 }
 
 /* ── Desktop type-scale ── */
