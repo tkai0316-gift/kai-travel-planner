@@ -60,14 +60,15 @@ export function renderTrip(trip) {
     const allPoints = [];
 
     for (const seg of (trip.segments || [])) {
-      const color = seg.color || '#64748b';
       const segPoints = [];
+      const segTypes = [];
 
       for (const day of (seg.daily || [])) {
         if (day.lat == null || day.lng == null) continue;
 
+        const markerColor = TYPE_COLORS[day.type] || '#475569';
         const el = document.createElement('div');
-        el.style.cssText = `cursor:pointer;width:28px;height:28px;border-radius:50%;background:${TYPE_COLORS[day.type] || color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:13px;`;
+        el.style.cssText = `cursor:pointer;width:28px;height:28px;border-radius:50%;background:${markerColor};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:13px;`;
         el.textContent = TYPE_EMOJI[day.type] || '📍';
         el.addEventListener('click', () => { if (markerClickCb) markerClickCb(day.date, seg.id); });
 
@@ -83,14 +84,15 @@ export function renderTrip(trip) {
           .addTo(map);
         markers.push(marker);
         segPoints.push([day.lng, day.lat]);
+        segTypes.push(day.type);
         allPoints.push([day.lng, day.lat]);
       }
 
-      if (segPoints.length >= 2) {
+      for (let i = 0; i < segPoints.length - 1; i++) {
         features.push({
           type: 'Feature',
-          properties: { color },
-          geometry: { type: 'LineString', coordinates: segPoints },
+          properties: { color: TYPE_COLORS[segTypes[i]] || '#475569' },
+          geometry: { type: 'LineString', coordinates: [segPoints[i], segPoints[i + 1]] },
         });
       }
     }
