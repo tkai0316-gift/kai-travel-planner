@@ -13,8 +13,8 @@
   --c-border:        #DDD5C8;
   --c-text:          #1E2D20;
   --c-text-2:        #4A5E4D;
-  --c-muted:         #7A7066;
-  --c-muted-lt:      #A89E94;
+  --c-muted:         #635C56;
+  --c-muted-lt:      #726860;
   --c-grid:          rgba(170,155,135,0.22);
   --c-row-hover:     #EDE5D8;
   --r-card:          10px;
@@ -70,6 +70,9 @@ button, input, select {
   font-size: 13px;
   padding: 8px 12px;
   font-family: var(--font-body);
+}
+@media (max-width: 767px) {
+  .maplibregl-popup-content { font-size: 15px; padding: 10px 14px; }
 }
 
 @media (min-width: 768px) {
