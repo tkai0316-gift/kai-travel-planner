@@ -47,7 +47,7 @@ export function clearMap() {
   markers.forEach(m => m.remove());
   markers.length = 0;
   if (!map) return;
-  ['route-line'].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+  ['route-line', 'route-line-halo'].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
   if (map.getSource('routes')) map.removeSource('routes');
 }
 
@@ -71,11 +71,11 @@ export function renderTrip(trip) {
         el.textContent = TYPE_EMOJI[day.type] || '📍';
         el.addEventListener('click', () => { if (markerClickCb) markerClickCb(day.date, seg.id); });
 
-        const popup = new maplibregl.Popup({ offset: 20, maxWidth: '200px' }).setHTML(`
-          <div style="font-size:12px;line-height:1.5">
-            <div style="font-size:10px;color:#64748b;margin-bottom:2px">${esc(day.date || '')}</div>
+        const popup = new maplibregl.Popup({ offset: 20, maxWidth: '220px' }).setHTML(`
+          <div style="font-size:14px;line-height:1.5">
+            <div style="font-size:12px;color:#64748b;margin-bottom:2px">${esc(day.date || '')}</div>
             <div style="font-weight:600">${TYPE_EMOJI[day.type] || '📍'} ${esc(day.title || '')}</div>
-            ${day.note ? `<div style="margin-top:4px;color:#64748b;font-size:11px">${esc(day.note)}</div>` : ''}
+            ${day.note ? `<div style="margin-top:4px;color:#64748b;font-size:12px">${esc(day.note)}</div>` : ''}
           </div>`);
         const marker = new maplibregl.Marker({ element: el })
           .setLngLat([day.lng, day.lat])
@@ -97,10 +97,16 @@ export function renderTrip(trip) {
 
     if (features.length > 0) {
       map.addSource('routes', { type: 'geojson', data: { type: 'FeatureCollection', features } });
+      // 白色光暈墊底，讓虛線在各種地圖背景上都清晰
+      map.addLayer({
+        id: 'route-line-halo', type: 'line', source: 'routes',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#ffffff', 'line-width': 7, 'line-opacity': 0.6 },
+      });
       map.addLayer({
         id: 'route-line', type: 'line', source: 'routes',
         layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': ['get', 'color'], 'line-width': 2.5, 'line-opacity': 0.65, 'line-dasharray': [2, 1.5] },
+        paint: { 'line-color': ['get', 'color'], 'line-width': 3.5, 'line-opacity': 0.9, 'line-dasharray': [4, 2.5] },
       });
     }
 
