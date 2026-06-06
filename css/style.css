@@ -1277,3 +1277,4 @@ button, input, select {
   .budget-amount         { font-size: 28px; }
   .section-lbl           { font-size: 11px; }
 }
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -8,6 +8,7 @@ export const SEL = {
   authOtpInput:     'auth-otp-input',
   authError:        'auth-error',
   signoutBtn:       'signout-btn',
+  refreshBtn:       'refresh-btn',
   panelToggle:      'panel-toggle',
   leftPanel:        'left-panel',
   offlineBanner:    'offline-banner',

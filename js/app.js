@@ -231,6 +231,15 @@ function bindAppEvents() {
     });
   }
 
+  // Refresh
+  q(SEL.refreshBtn)?.addEventListener('click', async () => {
+    const icon = document.getElementById('refresh-icon');
+    if (icon) icon.style.animation = 'spin 0.8s linear infinite';
+    await loadData();
+    if (icon) icon.style.animation = '';
+    showToast('資料已更新');
+  });
+
   // Sign out
   q(SEL.signoutBtn)?.addEventListener('click', async () => {
     await api.signOut();
