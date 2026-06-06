@@ -513,7 +513,7 @@ export function renderExpenseForm(trip, exp = null) {
       <div class="expense-form-row">
         <input type="date" id="ef-date" value="${exp ? esc(exp.date || '') : new Date().toISOString().slice(0,10)}" placeholder="日期">
         <select id="ef-category">
-          ${['景點','餐飲','交通','住宿','購物','其他'].map(c => `<option${exp?.category === c ? ' selected' : ''}>${c}</option>`).join('')}
+          ${['景點','活動','餐飲','交通','住宿','購物','其他'].map(c => `<option${exp?.category === c ? ' selected' : ''}>${c}</option>`).join('')}
         </select>
       </div>
       <div class="expense-form-row">
