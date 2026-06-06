@@ -40,12 +40,6 @@ async function init() {
       if (lat != null && lng != null) mapMgr.flyToDay(lat, lng);
     });
 
-    // Tab switching
-    ['trips', 'budget', 'prefs'].forEach(tab => {
-      const btn = document.getElementById(`tab-${tab}`);
-      if (btn) btn.addEventListener('click', () => ui.setActiveTab(tab));
-    });
-
     ui.setActiveTab('trips');
     ui.setOnlineState(navigator.onLine);
   } catch (err) {
