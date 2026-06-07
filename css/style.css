@@ -423,6 +423,13 @@ button, input, select {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.day-note-full {
+  font-size: 12px;
+  color: var(--c-text-2);
+  line-height: 1.5;
+  margin-bottom: 6px;
+  white-space: pre-wrap;
+}
 .day-loc-dot {
   width: 6px;
   height: 6px;

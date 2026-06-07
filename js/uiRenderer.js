@@ -310,8 +310,10 @@ function renderDayCard(day, dayIndex, segId, today = '', weatherCache = {}) {
 
   const expandKey  = `${segId}:${dayIndex}`;
   const detailOpen = expandedDays.has(expandKey);
-  const detailHtml = mapsLink ? `
+  const hasDetail  = !!(mapsLink || day.note);
+  const detailHtml = hasDetail ? `
     <div class="day-detail"${detailOpen ? '' : ' style="display:none"'}>
+      ${day.note ? `<div class="day-note-full">${esc(day.note)}</div>` : ''}
       ${mapsLink}
     </div>` : '';
 
@@ -329,7 +331,7 @@ function renderDayCard(day, dayIndex, segId, today = '', weatherCache = {}) {
       </div>
       <div style="display:flex;align-items:center;gap:2px;flex-shrink:0">
         ${hasLoc ? '<div class="day-loc-dot" title="已標記座標"></div>' : ''}
-        ${mapsLink ? `<button class="btn btn-icon btn-sm day-expand-btn${detailOpen ? ' expanded' : ''}" title="展開詳情" aria-label="展開詳情">${ICON_CHEVRON}</button>` : ''}
+        ${hasDetail ? `<button class="btn btn-icon btn-sm day-expand-btn${detailOpen ? ' expanded' : ''}" title="展開詳情" aria-label="展開詳情">${ICON_CHEVRON}</button>` : ''}
         <button class="btn btn-icon btn-sm day-edit-btn" data-day-index="${dayIndex}" data-seg-id="${esc(segId)}" data-edit title="編輯日程" style="opacity:.5">${ICON_EDIT}</button>
       </div>
       ${detailHtml}
