@@ -1132,10 +1132,20 @@ async function downloadExcelTemplate() {
 // ── Excel Import ───────────────────────────────────────────────────────────────
 function xlsxDateToString(val) {
   if (!val) return '';
-  if (val instanceof Date) return val.toISOString().slice(0, 10);
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
   const s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
   const d = new Date(s);
-  return isNaN(d) ? s.slice(0, 10) : d.toISOString().slice(0, 10);
+  if (isNaN(d)) return s.slice(0, 10);
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const dy = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${dy}`;
 }
 
 async function importExcel(file) {
