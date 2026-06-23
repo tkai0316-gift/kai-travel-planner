@@ -76,7 +76,10 @@ export function openConfirm({ title = '確認', message, okLabel = '確認刪除
   function cleanup() {
     okBtn.removeEventListener('click', handleOk);
     document.getElementById('confirm-cancel').removeEventListener('click', handleCancel);
+    openConfirm._cleanupPrev = null;
   }
+  if (typeof openConfirm._cleanupPrev === 'function') openConfirm._cleanupPrev();
+  openConfirm._cleanupPrev = cleanup;
   okBtn.addEventListener('click', handleOk);
   document.getElementById('confirm-cancel').addEventListener('click', handleCancel);
 }

@@ -12,7 +12,7 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
     // Origin check
-    if (allowedOrigin && origin && origin !== allowedOrigin) {
+    if (allowedOrigin && (!origin || origin !== allowedOrigin)) {
       return new Response('Forbidden', { status: 403 });
     }
 
@@ -52,5 +52,5 @@ export default {
 };
 
 function nanoid() {
-  return Math.random().toString(36).slice(2, 8) + Date.now().toString(36);
+  return crypto.randomUUID().replace(/-/g, '');
 }
