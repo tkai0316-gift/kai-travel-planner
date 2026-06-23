@@ -714,7 +714,7 @@ function bindDataPanelEvents() {
         };
         const incomingCount = (data.current_trips?.length || 0) + (data.past_trips?.length || 0);
         const newCount = incomingCount - conflicts.length;
-        api.saveTrips(user?.id, merged).catch(() => {});
+        api.saveTrips(user?.id, merged).catch(() => showToast('雲端同步失敗，資料已暫存本機', 'warn'));
         setState({ trips: merged, activeTripId: getState().activeTripId || merged.current_trips[0]?.id || null });
         saveCache(merged, getState().preferences);
         const msg = replace

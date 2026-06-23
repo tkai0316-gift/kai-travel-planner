@@ -5,6 +5,7 @@ import {
 
 const collapsedSegs = new Set();
 const expandedDays  = new Set();  // key: `${segId}:${dayIndex}`
+let _budgetChart    = null;
 
 const CURRENCIES = [
   ['TWD','台幣'],['USD','美元'],['JPY','日圓'],['EUR','歐元'],['GBP','英鎊'],
@@ -457,8 +458,8 @@ export function renderBudget(trip, rates = null) {
     setTimeout(() => {
       const ctx = document.getElementById('budget-chart');
       if (!ctx) return;
-      if (ctx._ci) ctx._ci.destroy();
-      ctx._ci = new Chart(ctx, {
+      if (_budgetChart) { _budgetChart.destroy(); _budgetChart = null; }
+      _budgetChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
           labels: Object.keys(byCategory),
