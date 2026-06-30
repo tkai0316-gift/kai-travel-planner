@@ -130,30 +130,35 @@ export function renderTimeline(trip, weatherCache = {}) {
     return;
   }
 
-  const badgeClass = STATUS_BADGE[trip.status] || 'badge-planning';
   const today = new Date().toISOString().slice(0, 10);
+  const startDiff = trip.start_date ? Math.ceil((new Date(trip.start_date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) : null;
+  const endDiff   = trip.end_date   ? Math.ceil((new Date(trip.end_date   + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) : null;
+  const isOngoing = startDiff !== null && endDiff !== null && startDiff < 0 && endDiff >= 0;
+  const effectiveStatus = (() => {
+    if (startDiff !== null && endDiff !== null) {
+      if (startDiff <= 0 && endDiff >= 0) return 'ongoing';
+      if (endDiff < 0) return 'completed';
+    }
+    return trip.status || 'planning';
+  })();
+  const badgeClass = STATUS_BADGE[effectiveStatus] || 'badge-planning';
   const totalDays  = (trip.segments || []).reduce((n, s) => n + (s.daily || []).length, 0);
   const totalDests = (trip.segments || []).flatMap(s => s.daily || []).filter(d => d.lat != null).length;
   const packing = trip.packing || [];
   const packedCount = packing.filter(p => p.done).length;
   const allPacked = packing.length > 0 && packedCount === packing.length;
   let daysChip = '';
-  if (trip.start_date && trip.end_date) {
-    const startDiff = Math.ceil((new Date(trip.start_date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
-    const endDiff   = Math.ceil((new Date(trip.end_date   + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+  if (startDiff !== null) {
     if (startDiff === 0) {
       daysChip = `<span class="trip-stat-chip accent">今天出發 🎉</span>`;
     } else if (startDiff > 0 && startDiff <= 90) {
       daysChip = `<span class="trip-stat-chip">還有 ${startDiff} 天</span>`;
-    } else if (startDiff < 0 && endDiff >= 0) {
+    } else if (isOngoing) {
       const dayNum = -startDiff + 1;
       const totalTripDays = Math.ceil((new Date(trip.end_date + 'T00:00:00') - new Date(trip.start_date + 'T00:00:00')) / 86400000) + 1;
       daysChip = `<span class="trip-stat-chip accent">旅途中 · 第 ${dayNum} / ${totalTripDays} 天</span>`;
     }
   }
-  const startDiff = trip.start_date ? Math.ceil((new Date(trip.start_date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) : null;
-  const endDiff   = trip.end_date   ? Math.ceil((new Date(trip.end_date   + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) : null;
-  const isOngoing = startDiff !== null && endDiff !== null && startDiff < 0 && endDiff >= 0;
   let todaySummaryHtml = '';
   if (isOngoing) {
     const todayItems = (trip.segments || []).flatMap(seg =>
@@ -198,7 +203,7 @@ export function renderTimeline(trip, weatherCache = {}) {
     <div class="trip-header">
       <div class="trip-header-row">
         <span class="trip-title">${esc(trip.title)}</span>
-        <span class="badge ${badgeClass}">${STATUS_LABELS[trip.status] || ''}</span>
+        <span class="badge ${badgeClass}">${STATUS_LABELS[effectiveStatus] || ''}</span>
         <button class="btn btn-icon btn-sm" id="trip-edit-btn" data-edit title="編輯行程" style="margin-left:auto">${ICON_EDIT}</button>
       </div>
       <div class="trip-dates">${esc(formatDateShort(trip.start_date))} – ${esc(formatDateShort(trip.end_date))}</div>
