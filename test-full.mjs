@@ -3,7 +3,7 @@
  * node test-full.mjs
  */
 import { chromium } from '/Users/mac/.nvm/versions/node/v24.15.0/lib/node_modules/playwright/index.mjs';
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'fs';
 import { CSEL } from './js/selectors.js';
 
 const BASE   = 'http://localhost:4321/?dev=1';
@@ -159,14 +159,51 @@ async function setupRoutes(page) {
         body: JSON.stringify(MOCK_PREFS_ROW) });
     }
   });
-  // auth.getUser() → null（觸發 dev bypass）
-  await page.route('**/auth/v1/user**', async route => {
-    await route.fulfill({ status: 401, contentType: 'application/json',
-      body: JSON.stringify({ message: 'not authenticated' }) });
+  // auth/v1/user 不攔截，讓真實 session（見 injectSession）通過驗證
+}
+
+// ─── 注入真實 Supabase session（比照 kai-trip E2E 模式）────────────
+// 專案未實作任何 mock/dev bypass，app.js init() 一定要拿到真實 user 才會
+// hideAuthOverlay() 並繼續往下跑，所以改成注入一組真的已登入 session，
+// 而不是攔截 auth API 假裝未登入。
+// 帳密走環境變數，不 hardcode：export KAI_TEST_EMAIL=... KAI_TEST_PASSWORD=...
+// URL/anon key 直接從 js/api.js 讀出來，不在這裡重複一份。
+const apiSrc = readFileSync(new URL('./js/api.js', import.meta.url), 'utf8');
+const SUPABASE_URL = apiSrc.match(/SUPABASE_URL\s*=\s*'([^']+)'/)?.[1];
+const SUPABASE_ANON_KEY = apiSrc.match(/SUPABASE_KEY\s*=\s*'([^']+)'/)?.[1];
+const TEST_EMAIL = process.env.KAI_TEST_EMAIL;
+const TEST_PASSWORD = process.env.KAI_TEST_PASSWORD;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('無法從 js/api.js 讀出 SUPABASE_URL / SUPABASE_KEY。');
+  process.exit(1);
+}
+if (!TEST_EMAIL || !TEST_PASSWORD) {
+  console.error('缺少 KAI_TEST_EMAIL / KAI_TEST_PASSWORD 環境變數，無法登入測試帳號。');
+  process.exit(1);
+}
+
+async function fetchTestSession() {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+    body: JSON.stringify({ email: TEST_EMAIL, password: TEST_PASSWORD }),
   });
+  if (!res.ok) {
+    throw new Error(`測試帳號登入失敗（${res.status}）：${await res.text()}`);
+  }
+  return res.json(); // { access_token, refresh_token, expires_in, expires_at, token_type, user }
+}
+
+async function injectSession(page, session) {
+  await page.addInitScript(([k, v]) => localStorage.setItem(k, v), [
+    'sb-cbdqlyprejzvndvesfpa-auth-token',
+    JSON.stringify(session),
+  ]);
 }
 
 const browser = await chromium.launch({ headless: false, slowMo: 150 });
+const testSession = await fetchTestSession();
 
 // ══════════════════════════════════════════════════════
 // A. 桌機 (1440×900)
@@ -181,6 +218,7 @@ await setupRoutes(d);
 
 // localStorage 清空，避免舊快取干擾
 await d.addInitScript(() => localStorage.clear());
+await injectSession(d, testSession);
 
 await d.goto(BASE);
 
@@ -591,6 +629,7 @@ const mCtx = await browser.newContext({
 const m = await mCtx.newPage();
 await setupRoutes(m);
 await m.addInitScript(() => localStorage.clear());
+await injectSession(m, testSession);
 await m.goto(BASE);
 
 try {
