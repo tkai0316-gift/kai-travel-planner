@@ -2,7 +2,7 @@ import { getState, setState, validateTripsJson, saveCache, loadCache } from './s
 import * as api from './api.js';
 import * as mapMgr from './mapManager.js';
 import * as ui from './uiRenderer.js';
-import { showToast, generateId, esc, ICON_GLOBE, openConfirm } from './utils.js';
+import { showToast, generateId, esc, ICON_GLOBE, openConfirm, todayLocal, localDateStr } from './utils.js';
 import { SEL } from './selectors.js';
 
 // ── DOM helper ────────────────────────────────────────────────────────────────
@@ -125,8 +125,8 @@ function renderActiveTrip() {
 }
 
 async function loadWeather(trip) {
-  const today  = new Date().toISOString().slice(0, 10);
-  const cutoff = new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10);
+  const today  = todayLocal();
+  const cutoff = localDateStr(new Date(Date.now() + 15 * 86400000));
 
   const locations = new Map();
   for (const seg of (trip.segments || [])) {
@@ -170,10 +170,15 @@ async function loadRates(trip) {
 }
 
 function initMap() {
-  mapMgr.init(SEL.map);
-  mapMgr.onMarkerClick((date) => {
-    ui.scrollTimelineToDate(date);
-  });
+  try {
+    mapMgr.init(SEL.map);
+    mapMgr.onMarkerClick((date) => {
+      ui.scrollTimelineToDate(date);
+    });
+  } catch (err) {
+    console.error('地圖初始化失敗:', err);
+    showToast('地圖載入失敗，其他功能不受影響', 'warn');
+  }
 }
 
 // ── App-level event bindings (called once after login) ────────────────────────
@@ -579,14 +584,17 @@ function bindChecklistEvents(trip) {
     }, { signal });
   });
 
-  q(SEL.todoAddBtn)?.addEventListener('click', () => {
+  q(SEL.todoAddBtn)?.addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    if (btn.disabled) return;
     const input = q(SEL.todoAddInput);
     const text = input?.value.trim();
     if (!text) return;
+    btn.disabled = true;
     trip.todo = [...(trip.todo || []), { id: generateId('todo'), text, done: false }];
     persistTrip(trip).then(ok => {
       if (ok) { ui.renderTimeline(trip, getState().weatherCache); bindChecklistEvents(trip); }
-      else trip.todo.pop();
+      else { trip.todo.pop(); btn.disabled = false; }
     });
   }, { signal });
 
@@ -599,16 +607,19 @@ function bindChecklistEvents(trip) {
     }, { signal });
   }
 
-  q(SEL.packingAddBtn)?.addEventListener('click', () => {
+  q(SEL.packingAddBtn)?.addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    if (btn.disabled) return;
     const nameInput = q(SEL.packingAddInput);
     const catInput  = q(SEL.packingCatInput);
     const text = nameInput?.value.trim();
     if (!text) return;
     const category = catInput?.value.trim() || '其他';
+    btn.disabled = true;
     trip.packing = [...(trip.packing || []), { id: generateId('pack'), text, category, done: false }];
     persistTrip(trip).then(ok => {
       if (ok) { ui.renderTimeline(trip, getState().weatherCache); bindChecklistEvents(trip); }
-      else trip.packing.pop();
+      else { trip.packing.pop(); btn.disabled = false; }
     });
   }, { signal });
 
@@ -1174,6 +1185,9 @@ async function importExcel(file) {
       tripNotes    = String(r[6] || '');
     }
 
+    let skippedDays = 0;
+    let skippedExpenses = 0;
+
     const segMap = new Map();
     dayWs.eachRow({ includeEmpty: false }, (row, rowNum) => {
       if (rowNum === 1) return;
@@ -1187,12 +1201,14 @@ async function importExcel(file) {
       const note     = String(vals[7] || '');
       const lat      = vals[8] != null ? parseFloat(vals[8]) : null;
       const lng      = vals[9] != null ? parseFloat(vals[9]) : null;
-      if (!date || !title) return;
+      if (!date || !title) { skippedDays++; return; }
+      if (lat != null && (isNaN(lat) || lat < -90 || lat > 90)) { skippedDays++; return; }
+      if (lng != null && (isNaN(lng) || lng < -180 || lng > 180)) { skippedDays++; return; }
 
       if (!segMap.has(segName)) {
         segMap.set(segName, { id: generateId(), name: segName, color: '#2C6E8A', start_date: segStart, end_date: segEnd, daily: [] });
       }
-      segMap.get(segName).daily.push({ date, type, title, note, lat: isNaN(lat) ? null : lat, lng: isNaN(lng) ? null : lng });
+      segMap.get(segName).daily.push({ date, type, title, note, lat, lng });
     });
 
     const segNameToId = new Map([...segMap.entries()].map(([k, v]) => [k, v.id]));
@@ -1207,7 +1223,7 @@ async function importExcel(file) {
         const amount   = parseFloat(vals[4]);
         const currency = String(vals[5] || tripCurrency);
         const note     = String(vals[6] || '');
-        if (!date || isNaN(amount)) return;
+        if (!date || isNaN(amount)) { skippedExpenses++; return; }
         expenses.push({ id: generateId(), date, segment_id: segNameToId.get(segName) || null, category, amount, currency, note });
       });
     }
@@ -1227,7 +1243,11 @@ async function importExcel(file) {
     if (user) await api.saveTrips(user.id, merged);
     setState({ trips: merged, activeTripId: trip.id });
     saveCache(merged, getState().preferences);
-    showToast(`Excel 匯入成功：${trip.title}`, 'success');
+    const skipParts = [];
+    if (skippedDays) skipParts.push(`${skippedDays} 筆日程`);
+    if (skippedExpenses) skipParts.push(`${skippedExpenses} 筆花費`);
+    const skipMsg = skipParts.length ? `，略過 ${skipParts.join('、')}（資料不完整或超出範圍）` : '';
+    showToast(`Excel 匯入成功：${trip.title}${skipMsg}`, 'success');
     ui.renderTripSelector(merged, trip.id);
     renderActiveTrip();
   } catch (err) { showToast(`Excel 匯入失敗：${err.message}`, 'error'); }
@@ -1489,22 +1509,25 @@ function openDayModal(day, segId, tripId, dayIndex = -1) {
   const placeSearch  = q(SEL.dmPlaceSearch);
   const placeResults = q(SEL.dmPlaceResults);
   let placeTimer = null;
+  let placeReqId = 0;
   if (placeSearch && placeResults) {
     placeSearch.addEventListener('input', () => {
       clearTimeout(placeTimer);
       const qs = placeSearch.value.trim();
       if (qs.length < 2) { placeResults.style.display = 'none'; return; }
       placeTimer = setTimeout(async () => {
+        const reqId = ++placeReqId;
         try {
           const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(qs)}&format=json&limit=5&accept-language=zh-TW,en`);
           const data = await res.json();
+          if (reqId !== placeReqId) return;
           if (!data.length) { placeResults.style.display = 'none'; return; }
           placeResults.innerHTML = data.map(item => {
             const label = item.display_name.split(',').slice(0, 3).join(', ');
             return `<li data-lat="${item.lat}" data-lng="${item.lon}" data-full="${esc(item.display_name)}">${esc(label)}</li>`;
           }).join('');
           placeResults.style.display = 'block';
-        } catch { placeResults.style.display = 'none'; }
+        } catch { if (reqId === placeReqId) placeResults.style.display = 'none'; }
       }, 400);
     });
     placeSearch.addEventListener('blur', () => {

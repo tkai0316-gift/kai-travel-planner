@@ -1,6 +1,6 @@
 import {
   esc, safeUrl, TYPE_ICONS, TRANSPORT_ICONS, ICON_CHECK, ICON_GLOBE,
-  formatDate, formatDateShort, formatCurrency,
+  formatDate, formatDateShort, formatCurrency, todayLocal,
 } from './utils.js';
 
 const collapsedSegs = new Set();
@@ -95,7 +95,7 @@ export function renderDayTabs(trip) {
   allDays.sort((a, b) => a.date.localeCompare(b.date));
   if (allDays.length === 0) { el.innerHTML = ''; return; }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   el.innerHTML = allDays.map((d, i) => {
     const isToday = d.date === today;
     return `<button class="day-tab-btn${isToday ? ' is-today-tab' : ''}" data-tab-date="${esc(d.date)}" data-seg-id="${esc(d.segId)}" type="button">
@@ -130,7 +130,7 @@ export function renderTimeline(trip, weatherCache = {}) {
     return;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   const startDiff = trip.start_date ? Math.ceil((new Date(trip.start_date + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) : null;
   const endDiff   = trip.end_date   ? Math.ceil((new Date(trip.end_date   + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000) : null;
   const isOngoing = startDiff !== null && endDiff !== null && startDiff < 0 && endDiff >= 0;
@@ -519,7 +519,7 @@ export function renderExpenseForm(trip, exp = null) {
   wrap.innerHTML = `
     <div class="expense-form" id="add-expense-form">
       <div class="expense-form-row">
-        <input type="date" id="ef-date" value="${exp ? esc(exp.date || '') : new Date().toISOString().slice(0,10)}" placeholder="日期">
+        <input type="date" id="ef-date" value="${exp ? esc(exp.date || '') : todayLocal()}" placeholder="日期">
         <select id="ef-category">
           ${['景點','活動','餐飲','交通','住宿','購物','其他'].map(c => `<option${exp?.category === c ? ' selected' : ''}>${c}</option>`).join('')}
         </select>
