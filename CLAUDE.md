@@ -19,7 +19,8 @@
 
 ## Supabase
 - Project: cbdqlyprejzvndvesfpa
-- Auth: Email OTP，`shouldCreateUser: false`（封閉制）
+- Auth: **GitHub OAuth，僅限擁有者**（2026-09-24 起個人系統，比照 kai-trip／kai-admin）：`api.getOwnerUser()` 檢查 provider=github 且 uid=擁有者，否則登出；DB 端 `user_trips`／`user_preferences` RLS 同樣只限擁有者（ADR-013 Tier A）。Supabase Redirect URLs 需含本站網址
+- kai-trip 分享頁地圖：`share.html?trip=<kai-trip share_uuid>` 走 RPC `get_planner_map`（即時、白名單欄位）；舊的 `?id=` KV 快照分享保留，但只送白名單欄位（`api.js` `pickShareFields`）
 - Anon key: `sb_publishable_YVutBvxGMw_PC37YURYsKA_AXn32IKZ`（sb_publishable_ 開頭，可 hardcode）
 
 ## Worker 部署（分離，非 Pages Function）

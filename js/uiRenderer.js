@@ -904,15 +904,6 @@ export function hideAuthOverlay() {
   if (app) app.classList.add('ready');
 }
 
-export function showOtpStep(email) {
-  const emailForm  = document.getElementById('auth-email-form');
-  const otpForm    = document.getElementById('auth-otp-form');
-  const emailDisp  = document.getElementById('auth-email-display');
-  if (emailForm) emailForm.style.display = 'none';
-  if (otpForm)   otpForm.style.display = 'block';
-  if (emailDisp) emailDisp.textContent = email;
-}
-
 export function showAuthError(msg) {
   const el = document.getElementById('auth-error');
   if (el) { el.textContent = msg; el.style.display = 'block'; }

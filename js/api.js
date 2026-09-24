@@ -11,12 +11,24 @@ export async function getUser() {
   return user;
 }
 
-export async function signInWithOtp(email) {
-  return sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+// 個人系統（比照 kai-trip / kai-admin）：GitHub 登入且為擁有者才放行；DB 端 user_trips / user_preferences RLS 同樣只限擁有者
+const OWNER_UID = '1b65fb0d-ab62-46fc-ba96-c0405f5480c5';
+
+export async function getOwnerUser() {
+  const user = await getUser();
+  if (!user) return { user: null, rejected: false };
+  if (user.app_metadata?.provider !== 'github' || user.id !== OWNER_UID) {
+    await sb.auth.signOut();
+    return { user: null, rejected: true };
+  }
+  return { user, rejected: false };
 }
 
-export async function verifyOtp(email, token) {
-  return sb.auth.verifyOtp({ email, token, type: 'email' });
+export async function signInWithGitHub() {
+  return sb.auth.signInWithOAuth({
+    provider: 'github',
+    options: { redirectTo: location.origin + location.pathname },
+  });
 }
 
 export async function signOut() {
@@ -59,11 +71,25 @@ export async function savePreferences(userId, prefData) {
   if (error) throw error;
 }
 
-export async function createShare(tripData, prefData) {
+// 快照分享只帶地圖/時間軸需要的欄位（與 RPC get_planner_map 白名單一致）；
+// 不帶花費、預算、待辦、打包清單、偏好設定——快照 JSON 對拿到連結的人是完整可讀的
+function pickShareFields(trip) {
+  return {
+    id: trip.id, title: trip.title, start_date: trip.start_date, end_date: trip.end_date,
+    segments: (trip.segments || []).map(s => ({
+      id: s.id, name: s.name, color: s.color, start_date: s.start_date, end_date: s.end_date,
+      daily: (s.daily || []).map(d => ({
+        date: d.date, type: d.type, title: d.title, note: d.note, lat: d.lat, lng: d.lng, transport: d.transport,
+      })),
+    })),
+  };
+}
+
+export async function createShare(tripData) {
   const res = await fetch(`${WORKER_URL}/api/share`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ trip_data: tripData, pref_data: prefData }),
+    body: JSON.stringify({ trip_data: pickShareFields(tripData), pref_data: {} }),
   });
   if (!res.ok) throw new Error('分享建立失敗');
   return res.json();

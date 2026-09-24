@@ -1,11 +1,7 @@
 export const SEL = {
   // App shell
   authOverlay:      'auth-overlay',
-  authEmailForm:    'auth-email-form',
-  authOtpForm:      'auth-otp-form',
-  authEmailInput:   'auth-email-input',
-  authEmailDisplay: 'auth-email-display',
-  authOtpInput:     'auth-otp-input',
+  authGithubBtn:    'auth-github-btn',
   authError:        'auth-error',
   signoutBtn:       'signout-btn',
   refreshBtn:       'refresh-btn',

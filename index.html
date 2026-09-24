@@ -22,20 +22,9 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2C6E8A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
     </div>
     <h1 class="auth-title">Kai Travel Planner</h1>
-    <p class="auth-sub">登入以存取你的行程</p>
+    <p class="auth-sub">個人系統，僅限擁有者登入</p>
 
-    <form id="auth-email-form">
-      <label class="auth-label" for="auth-email-input">電子郵件</label>
-      <input id="auth-email-input" class="auth-input" type="email" required autocomplete="email" placeholder="your@email.com">
-      <button type="submit" class="auth-btn">傳送驗證碼</button>
-    </form>
-
-    <form id="auth-otp-form" style="display:none">
-      <p style="font-size:13px;color:var(--c-muted);margin-bottom:12px">驗證碼已傳送至 <span id="auth-email-display" style="font-weight:600;color:var(--c-text)"></span></p>
-      <label class="auth-label" for="auth-otp-input">8 位數驗證碼</label>
-      <input id="auth-otp-input" class="auth-input auth-input-otp" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="one-time-code" placeholder="00000000">
-      <button type="submit" class="auth-btn">登入</button>
-    </form>
+    <button id="auth-github-btn" type="button" class="auth-btn">使用 GitHub 登入</button>
 
     <p id="auth-error" class="auth-error"></p>
   </div>
@@ -62,6 +51,7 @@
         <ul id="trip-selector-list" class="trip-dropdown" style="display:none"></ul>
       </div>
       <div id="online-dot" title="連線狀態"></div>
+      <a id="kai-trip-link" href="https://kai-trip.pages.dev/" title="回到 kai-trip" style="font-size:11px;color:var(--c-muted-lt);text-decoration:none;white-space:nowrap;padding:4px">← kai-trip</a>
       <button id="refresh-btn" title="重新整理" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;color:var(--c-muted-lt)">
         <svg id="refresh-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </button>

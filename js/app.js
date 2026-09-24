@@ -9,7 +9,6 @@ import { SEL } from './selectors.js';
 const q = id => document.getElementById(id);
 
 // ── Module state ──────────────────────────────────────────────────────────────
-let pendingEmail = '';
 let _todoComposing   = false;
 let _packComposing   = false;
 let _ideaComposing   = false;
@@ -25,7 +24,7 @@ function getActiveTrip() {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
-  const user = await api.getUser();
+  const { user, rejected } = await api.getOwnerUser();
 
   setState({ user, isOnline: navigator.onLine });
 
@@ -42,6 +41,7 @@ async function init() {
   });
 
   bindAuthEvents();
+  if (rejected) ui.showAuthError('此帳號沒有使用權限');
 
   if (user) {
     ui.hideAuthOverlay();
@@ -894,9 +894,9 @@ function bindDataPanelEvents() {
     const shareBtn = q(SEL.shareBtn);
     try {
       shareBtn.disabled = true; shareBtn.textContent = '產生中...';
-      const { trips, preferences, activeTripId } = getState();
+      const { trips, activeTripId } = getState();
       const trip = [...(trips.current_trips || []), ...(trips.past_trips || [])].find(t => t.id === activeTripId);
-      const { id } = await api.createShare(trip, preferences);
+      const { id } = await api.createShare(trip);
       const url = `${location.origin}/share.html?id=${id}`;
       saveShareTokens([...getShareTokens(), { id, url }]);
       renderShareTokensList();
@@ -1255,45 +1255,15 @@ async function importExcel(file) {
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 function bindAuthEvents() {
-  const emailForm = q(SEL.authEmailForm);
-  const otpForm   = q(SEL.authOtpForm);
-
-  emailForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  const btn = q(SEL.authGithubBtn);
+  btn?.addEventListener('click', async () => {
     ui.clearAuthError();
-    const email = q(SEL.authEmailInput)?.value.trim();
-    if (!email) return;
-    const btn = emailForm.querySelector('button[type=submit]');
-    if (btn) btn.disabled = true;
-    try {
-      const { error } = await api.signInWithOtp(email);
-      if (error) throw error;
-      pendingEmail = email;
-      ui.showOtpStep(email);
-    } catch (err) {
-      ui.showAuthError(err.message || '發送失敗，請確認信箱是否已授權');
-    } finally { if (btn) btn.disabled = false; }
-  });
-
-  otpForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    ui.clearAuthError();
-    const token = q(SEL.authOtpInput)?.value.trim();
-    if (!token) return;
-    const btn = otpForm.querySelector('button[type=submit]');
-    if (btn) btn.disabled = true;
-    try {
-      const { error } = await api.verifyOtp(pendingEmail, token);
-      if (error) throw error;
-      const user = await api.getUser();
-      setState({ user });
-      ui.hideAuthOverlay();
-      await loadData();
-      initMap();
-      bindAppEvents();
-    } catch (err) {
-      ui.showAuthError(err.message || 'OTP 驗證失敗');
-    } finally { if (btn) btn.disabled = false; }
+    btn.disabled = true;
+    const { error } = await api.signInWithGitHub();
+    if (error) {
+      ui.showAuthError(error.message || 'GitHub 登入失敗');
+      btn.disabled = false;
+    }
   });
 }
 
