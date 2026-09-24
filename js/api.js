@@ -75,6 +75,14 @@ export async function fetchShare(shareId) {
   return res.json();
 }
 
+// kai-trip 分享頁的即時地圖：以 kai-trip 行程的 share_uuid 查，未開放時回 null
+export async function fetchLinkedMap(tripShareUuid) {
+  const { data, error } = await sb.rpc('get_planner_map', { p_uuid: tripShareUuid });
+  if (error) throw new Error('地圖載入失敗');
+  if (!data) throw new Error('此行程地圖尚未開放分享');
+  return data;
+}
+
 export async function deleteShare(shareId) {
   const res = await fetch(`${WORKER_URL}/api/share/${shareId}`, { method: 'DELETE' });
   if (!res.ok && res.status !== 404) throw new Error('撤銷失敗');

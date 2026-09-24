@@ -5,16 +5,19 @@ import * as ui from './uiRenderer.js';
 async function init() {
   const params = new URLSearchParams(location.search);
   const id = params.get('id');
+  const linkedTrip = params.get('trip');
   const loadingEl = document.getElementById('share-loading');
   const appEl = document.getElementById('app');
 
-  if (!id) {
+  if (!id && !linkedTrip) {
     if (loadingEl) loadingEl.textContent = '無效的分享連結';
     return;
   }
 
   try {
-    const data = await api.fetchShare(id);
+    const data = linkedTrip
+      ? { trip_data: await api.fetchLinkedMap(linkedTrip), pref_data: {} }
+      : await api.fetchShare(id);
     if (loadingEl) loadingEl.style.display = 'none';
     if (appEl) appEl.classList.add('ready');
 
