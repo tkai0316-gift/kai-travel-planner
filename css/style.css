@@ -73,10 +73,10 @@ button, input, select {
 }
 @media (max-width: 767px) {
   .maplibregl-popup-content { font-size: 15px; padding: 10px 14px; }
-  /* 手機三顆浮動鈕貼邊：左右下邊距都 10px（控制項自帶 10px margin，容器歸零）；
-     ☰ 疊在定位鈕正上方間距 12px，面板打開時再抬高避開 tab-bar */
+  /* 手機浮動鈕貼邊 10px（控制項自帶 10px margin）：ⓘ 左下；☰ 右下最底（最常按），
+     定位鈕疊在 ☰ 上方間距 12px → 容器 bottom = 10 + 48 + 12 - 10 = 60 */
   .maplibregl-ctrl-bottom-left  { left: 0;  bottom: env(safe-area-inset-bottom, 0px); }
-  .maplibregl-ctrl-bottom-right { right: 0; bottom: env(safe-area-inset-bottom, 0px); }
+  .maplibregl-ctrl-bottom-right { right: 0; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
 }
 
 @media (min-width: 768px) {
@@ -1135,8 +1135,8 @@ button, input, select {
 #panel-toggle:hover { transform: scale(1.06); box-shadow: 0 6px 24px rgba(0,0,0,.3); }
 #panel-toggle svg { width: 22px; height: 22px; }
 @media (max-width: 767px) {
-  /* 疊在定位鈕正上方（10 + 29 + 12），面板打開時抬高避開 tab-bar */
-  #panel-toggle { right: 10px; bottom: calc(51px + env(safe-area-inset-bottom, 0px)); }
+  /* 右下最底；面板打開時抬高避開 tab-bar */
+  #panel-toggle { right: 10px; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
   body:has(#left-panel.panel-open) #panel-toggle { bottom: 80px; }
 }
 
