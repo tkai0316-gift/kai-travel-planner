@@ -1310,6 +1310,7 @@ function openTripModal(trip) {
   q(SEL.tripModalClose).onclick = closeTripModal;
   q(SEL.tmCancel).onclick = closeTripModal;
   q(SEL.tmSave).onclick = () => saveTripFromModal(tripId);
+  loadKaiTripOptions(trip);
 
   const delBtn = q(SEL.tmDelete);
   if (delBtn) delBtn.onclick = () => {
@@ -1320,6 +1321,35 @@ function openTripModal(trip) {
       onConfirm: () => { closeTripModal(); handleDeleteTrip(tripId); },
     });
   };
+}
+
+// 失敗或尚未載入時 select 保持 disabled，存檔會沿用原本的 kai_trip_id，不會誤清連結
+async function loadKaiTripOptions(trip) {
+  const sel = q(SEL.tmKaiTrip);
+  const hint = q(SEL.tmKaiTripHint);
+  if (!sel) return;
+  const current = trip?.kai_trip_id || '';
+  try {
+    const kaiTrips = await api.fetchKaiTrips();
+    if (!sel.isConnected) return;
+    const { trips } = getState();
+    const usedBy = new Map([...(trips.current_trips || []), ...(trips.past_trips || [])]
+      .filter(t => t.kai_trip_id && t.id !== trip?.id)
+      .map(t => [t.kai_trip_id, t.title]));
+    sel.replaceChildren(new Option('（不連結）', ''));
+    for (const k of kaiTrips) {
+      const owner = usedBy.get(k.id);
+      const opt = new Option(`${k.depart_date || ''} ${k.title}${owner ? `（已被「${owner}」連結）` : ''}`, k.id);
+      opt.disabled = !!owner;
+      sel.add(opt);
+    }
+    sel.value = current;
+    sel.disabled = false;
+  } catch {
+    if (!sel.isConnected) return;
+    sel.replaceChildren(new Option(current ? '（保留原本的連結）' : '（不連結）', current));
+    if (hint) hint.textContent = '無法載入 kai-trip 行程清單，連結維持不變';
+  }
 }
 
 function closeTripModal() {
@@ -1356,6 +1386,11 @@ async function saveTripFromModal(existingId) {
       packing:  existing?.packing  || [],
       expenses: existing?.expenses || [],
     };
+    const kaiSel = q(SEL.tmKaiTrip);
+    if (kaiSel && !kaiSel.disabled) {
+      if (kaiSel.value) updated.kai_trip_id = kaiSel.value;
+      else delete updated.kai_trip_id;
+    }
 
     const ok = await persistTrip(updated);
     if (!ok) return;

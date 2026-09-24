@@ -45,6 +45,8 @@ export const SEL = {
   tmBudget:   'tm-budget',
   tmCurrency: 'tm-currency',
   tmNotes:    'tm-notes',
+  tmKaiTrip:  'tm-kai-trip',
+  tmKaiTripHint: 'tm-kai-trip-hint',
   tmSave:     'tm-save',
   tmCancel:   'tm-cancel',
   tmDelete:   'tm-delete',

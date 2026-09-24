@@ -748,6 +748,11 @@ export function renderTripModal(trip) {
       <label class="form-label">備註</label>
       <textarea class="form-input" id="tm-notes" rows="2" maxlength="500" placeholder="旅遊備忘、注意事項..." style="resize:vertical">${esc(t.notes || '')}</textarea>
     </div>
+    <div class="form-row">
+      <label class="form-label">對應 kai-trip 行程</label>
+      <select class="form-input" id="tm-kai-trip" disabled><option value="">載入中...</option></select>
+      <div id="tm-kai-trip-hint" style="font-size:11px;color:var(--c-muted);margin-top:4px">連結後，可在 kai-trip 分享設定開啟「行程地圖」</div>
+    </div>
   `;
   document.getElementById('trip-modal-footer').innerHTML = `
     ${isEdit ? `<button class="btn btn-danger btn-sm" id="tm-delete" style="margin-right:auto">刪除行程</button>` : ''}

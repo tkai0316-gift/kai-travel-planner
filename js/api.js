@@ -75,6 +75,13 @@ export async function fetchShare(shareId) {
   return res.json();
 }
 
+// planner 行程編輯時選「對應 kai-trip 行程」用（trips 為 Tier A，僅擁有者讀得到）
+export async function fetchKaiTrips() {
+  const { data, error } = await sb.from('trips').select('id, title, depart_date').order('depart_date', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
 // kai-trip 分享頁的即時地圖：以 kai-trip 行程的 share_uuid 查，未開放時回 null
 export async function fetchLinkedMap(tripShareUuid) {
   const { data, error } = await sb.rpc('get_planner_map', { p_uuid: tripShareUuid });
