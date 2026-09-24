@@ -209,10 +209,11 @@ export function renderTimeline(trip, weatherCache = {}) {
       <div class="trip-dates">${esc(formatDateShort(trip.start_date))} – ${esc(formatDateShort(trip.end_date))}</div>
       ${statsHtml}
       ${trip.notes ? `<div class="trip-notes">${esc(trip.notes)}</div>` : ''}
+      ${trip.kai_trip_id ? '<div class="trip-notes">🔗 內容來自 kai-trip，請到 kai-trip 修改；這裡只調地圖位置</div>' : ''}
     </div>
     ${todaySummaryHtml}
     <div id="segments-container">${(trip.segments || []).map(seg => renderSegment(seg, today, weatherCache)).join('')}</div>
-    ${renderTodoPacking(trip)}
+    ${trip.kai_trip_id ? '' : renderTodoPacking(trip)}
   `;
 
   el.querySelectorAll('.seg-header').forEach(hdr => {
