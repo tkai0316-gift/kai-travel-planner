@@ -1,5 +1,6 @@
 // ⚠️ 2026-09-24 起停用：planner 改 GitHub 登入＋只限擁有者（RLS Tier A），
 //    本檔用 KAI_TEST_EMAIL/PASSWORD 測試帳號登入已無法通過；登入畫面的 email/OTP 選擇器也已移除。
+//    測試帳號 kai.test.playwright 已於 2026-09-24 刪除（信箱可能無人持有、可被接管），不要再建。
 //    要恢復需改成「注入擁有者本人 session」並以 E2E 開頭命名測試資料、跑完清除。
 /**
  * kai-travel-planner 完整功能測試（含假資料注入）
