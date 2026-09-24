@@ -73,6 +73,8 @@ button, input, select {
 }
 @media (max-width: 767px) {
   .maplibregl-popup-content { font-size: 15px; padding: 10px 14px; }
+  /* 定位鈕右緣與 ☰ 對齊在 16px（控制項自帶 10px margin） */
+  .maplibregl-ctrl-bottom-right { right: 6px; }
 }
 
 @media (min-width: 768px) {
@@ -1114,7 +1116,7 @@ button, input, select {
   display: none;
   position: fixed;
   bottom: 80px;
-  right: 20px;
+  right: 16px;
   z-index: 60;
   width: 48px;
   height: 48px;

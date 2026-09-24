@@ -21,6 +21,12 @@ export function init(containerId) {
   });
 
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  // compact 模式初次載入會自動展開，手機上會壓住底部標記 → 載入後收成 ⓘ
+  map.once('load', () => {
+    const attrib = map.getContainer().querySelector('.maplibregl-ctrl-attrib');
+    attrib?.classList.remove('maplibregl-compact-show');
+    attrib?.removeAttribute('open');
+  });
 
   map.addControl(new maplibregl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true },
